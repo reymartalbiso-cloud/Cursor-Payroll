@@ -22,7 +22,6 @@ interface Settings {
   company_email: string;
   gov_deduction_mode: string;
   standard_daily_hours: string;
-  overtime_multiplier: string;
   currency: string;
 }
 
@@ -35,7 +34,6 @@ export default function SettingsPage() {
     company_email: '',
     gov_deduction_mode: 'fixed_per_cutoff',
     standard_daily_hours: '8',
-    overtime_multiplier: '1.25',
     currency: 'PHP',
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +82,7 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
       </div>
     );
   }
@@ -202,19 +200,6 @@ export default function SettingsPage() {
                 Used for calculating hourly rate and late deductions
               </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="overtime_multiplier">Overtime Multiplier</Label>
-              <Input
-                id="overtime_multiplier"
-                type="number"
-                step="0.01"
-                value={settings.overtime_multiplier}
-                onChange={(e) => setSettings({ ...settings, overtime_multiplier: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Overtime pay = OT hours x hourly rate x multiplier
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -228,7 +213,7 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-4 bg-blue-50 rounded-lg">
+          <div className="p-4 bg-saffron/10 rounded-lg">
             <h4 className="font-semibold text-blue-900">Workday Calculation</h4>
             <p className="text-sm text-blue-700 mt-1">
               Workdays are calculated as Monday through Saturday only. Sundays are automatically
@@ -243,8 +228,8 @@ export default function SettingsPage() {
             </p>
           </div>
           <div className="p-4 bg-green-50 rounded-lg">
-            <h4 className="font-semibold text-green-900">Cutoff Periods</h4>
-            <ul className="text-sm text-green-700 mt-1 list-disc list-inside">
+            <h4 className="font-semibold text-castleton-green">Cutoff Periods</h4>
+            <ul className="text-sm text-dark-serpent/80 mt-1 list-disc list-inside">
               <li>First Half: 1st - 15th of the month</li>
               <li>Second Half: 16th - end of month (28/29/30/31 depending on month)</li>
             </ul>

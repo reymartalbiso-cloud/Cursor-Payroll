@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileSpreadsheet, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { FileSpreadsheet, AlertTriangle, CheckCircle, XCircle, DownloadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Sheet {
@@ -69,6 +69,7 @@ interface ValidationResult {
   unrecognizedEmployees: Array<{ identifier: string }>;
   dateRangeValid: boolean;
   dateRangeError?: string;
+  preview?: any[];
 }
 
 // Helper function to format mapping keys for display
@@ -99,13 +100,18 @@ function formatMappingKey(key: string): string {
 export default function ImportTimesheetPage() {
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const [step, setStep] = useState(1);
+  const [importMode, setImportMode] = useState<'excel' | 'lifescan'>('excel'); // 'excel' or 'lifescan'
+
+  // Excel State
   const [file, setFile] = useState<File | null>(null);
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string>('');
   const [mapping, setMapping] = useState<ColumnMapping>({});
   const [autoDetectedMapping, setAutoDetectedMapping] = useState<ColumnMapping>({});
+
+  // Common State
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>([]);
   const [selectedPayrollRun, setSelectedPayrollRun] = useState<string>('');
   const [validation, setValidation] = useState<ValidationResult | null>(null);
@@ -116,7 +122,7 @@ export default function ImportTimesheetPage() {
   useEffect(() => {
     const fetchPayrollRuns = async () => {
       try {
-        const res = await fetch('/api/payroll-runs?status=DRAFT&limit=50');
+        const res = await fetch('/api/payroll-runs?status=DRAFT,REVIEWED,FINALIZED&limit=50');
         if (res.ok) {
           const data = await res.json();
           setPayrollRuns(data.payrollRuns);
@@ -151,7 +157,7 @@ export default function ImportTimesheetPage() {
 
       const data = await res.json();
       setSheets(data.sheets);
-      
+
       // Auto-select first sheet and use auto-detected mapping
       if (data.sheets.length >= 1) {
         setSelectedSheet(data.sheets[0].name);
@@ -174,57 +180,80 @@ export default function ImportTimesheetPage() {
 
   // Update mapping when sheet changes
   useEffect(() => {
-    const sheet = sheets.find(s => s.name === selectedSheet);
-    if (sheet && (sheet as Sheet & { autoMapping?: ColumnMapping }).autoMapping) {
-      const autoMap = (sheet as Sheet & { autoMapping?: ColumnMapping }).autoMapping!;
-      setAutoDetectedMapping(autoMap);
-      setMapping(autoMap);
+    if (importMode === 'excel') {
+      const sheet = sheets.find(s => s.name === selectedSheet);
+      if (sheet && (sheet as Sheet & { autoMapping?: ColumnMapping }).autoMapping) {
+        const autoMap = (sheet as Sheet & { autoMapping?: ColumnMapping }).autoMapping!;
+        setAutoDetectedMapping(autoMap);
+        setMapping(autoMap);
+      }
     }
-  }, [selectedSheet, sheets]);
+  }, [selectedSheet, sheets, importMode]);
 
   const currentSheet = sheets.find(s => s.name === selectedSheet);
 
   const handleValidate = async () => {
-    if (!file || !selectedSheet || !selectedPayrollRun) {
+    if (!selectedPayrollRun) {
       toast({
         title: 'Error',
-        description: 'Please select a sheet and payroll run',
+        description: 'Please select a payroll run',
         variant: 'destructive',
       });
       return;
     }
 
-    if (!mapping.employeeId && !mapping.employeeName) {
-      toast({
-        title: 'Error',
-        description: 'Could not detect Employee ID column. Please ensure your Excel has an "Employee ID", "Emp ID", "ID", or "No" column.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    if (importMode === 'excel') {
+      if (!file || !selectedSheet) {
+        toast({
+          title: 'Error',
+          description: 'Please select a sheet',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-    if (!mapping.date) {
-      toast({
-        title: 'Error',
-        description: 'Could not detect Date column. Please ensure your Excel has a "Date" column.',
-        variant: 'destructive',
-      });
-      return;
+      if (!mapping.employeeId && !mapping.employeeName) {
+        toast({
+          title: 'Error',
+          description: 'Could not detect Employee ID column. Please ensure your Excel has an "Employee ID", "Emp ID", "ID", or "No" column.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!mapping.date) {
+        toast({
+          title: 'Error',
+          description: 'Could not detect Date column. Please ensure your Excel has a "Date" column.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setIsLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('sheetName', selectedSheet);
-      formData.append('mapping', JSON.stringify(mapping));
-      formData.append('payrollRunId', selectedPayrollRun);
+      let res;
+      if (importMode === 'excel') {
+        const formData = new FormData();
+        formData.append('file', file!);
+        formData.append('sheetName', selectedSheet);
+        formData.append('mapping', JSON.stringify(mapping));
+        formData.append('payrollRunId', selectedPayrollRun);
 
-      const res = await fetch('/api/import/process', {
-        method: 'POST',
-        body: formData,
-      });
+        res = await fetch('/api/import/process', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // LifeScan API
+        res = await fetch('/api/import/lifescan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payrollRunId: selectedPayrollRun }),
+        });
+      }
 
       if (!res.ok) {
         const data = await res.json();
@@ -246,21 +275,33 @@ export default function ImportTimesheetPage() {
   };
 
   const handleImport = async () => {
-    if (!file || !selectedSheet || !selectedPayrollRun) return;
+    if (!selectedPayrollRun) return;
+
+    if (importMode === 'excel' && (!file || !selectedSheet)) return;
 
     setIsProcessing(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('sheetName', selectedSheet);
-      formData.append('mapping', JSON.stringify(mapping));
-      formData.append('payrollRunId', selectedPayrollRun);
+      let res;
+      if (importMode === 'excel') {
+        const formData = new FormData();
+        formData.append('file', file!);
+        formData.append('sheetName', selectedSheet);
+        formData.append('mapping', JSON.stringify(mapping));
+        formData.append('payrollRunId', selectedPayrollRun);
 
-      const res = await fetch('/api/import/process', {
-        method: 'PUT',
-        body: formData,
-      });
+        res = await fetch('/api/import/process', {
+          method: 'PUT',
+          body: formData,
+        });
+      } else {
+        // LifeScan API
+        res = await fetch('/api/import/lifescan', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payrollRunId: selectedPayrollRun }),
+        });
+      }
 
       if (!res.ok) {
         const data = await res.json();
@@ -268,7 +309,7 @@ export default function ImportTimesheetPage() {
       }
 
       const data = await res.json();
-      
+
       toast({
         title: 'Import Successful',
         description: `Imported ${data.imported} employee records`,
@@ -291,7 +332,7 @@ export default function ImportTimesheetPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Import Timesheet</h1>
         <p className="text-muted-foreground">
-          Upload an Excel timesheet to create or update payroll data
+          Import timesheet data from Excel or pull directly from LifeScan API
         </p>
       </div>
 
@@ -300,17 +341,16 @@ export default function ImportTimesheetPage() {
         {[1, 2, 3].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                step >= s
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-500'
-              }`}
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= s
+                ? 'bg-castleton-green text-white'
+                : 'bg-gray-200 text-gray-500'
+                }`}
             >
               {s}
             </div>
             <span className={step >= s ? 'font-medium' : 'text-muted-foreground'}>
-              {s === 1 && 'Upload File'}
-              {s === 2 && 'Map Columns'}
+              {s === 1 && 'Select Mode'}
+              {s === 2 && 'Configure'}
               {s === 3 && 'Review & Import'}
             </span>
             {s < 3 && <div className="w-12 h-0.5 bg-gray-200" />}
@@ -318,70 +358,66 @@ export default function ImportTimesheetPage() {
         ))}
       </div>
 
-      {/* Step 1: Upload */}
+      {/* Step 1: Mode Selection */}
       {step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload Timesheet File</CardTitle>
-            <CardDescription>
-              Upload an Excel file (.xlsx) containing timesheet data
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-12 text-center">
-              <FileSpreadsheet className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <div className="space-y-2">
-                <Label htmlFor="file-upload" className="cursor-pointer">
-                  <span className="text-blue-600 hover:text-blue-700 font-medium">
-                    Click to upload
-                  </span>
-                  <span className="text-muted-foreground"> or drag and drop</span>
-                </Label>
-                <p className="text-sm text-muted-foreground">Excel files only (.xlsx)</p>
-                <Input
-                  id="file-upload"
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={isLoading}
-                />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card
+            className={`cursor-pointer transition-all hover:border-castleton-green/60 hover:shadow-md ${importMode === 'excel' ? 'border-castleton-green ring-2 ring-castleton-green/10' : ''}`}
+            onClick={() => setImportMode('excel')}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-6 w-6 text-castleton-green" />
+                Excel Upload
+              </CardTitle>
+              <CardDescription>
+                Upload a manually prepared Excel timesheet (.xlsx)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-500">
+                Use this if you have a local file with attendance logs. Supports column mapping.
               </div>
-              {isLoading && (
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                  <span className="text-sm text-muted-foreground">Parsing file...</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all hover:border-castleton-green/60 hover:shadow-md ${importMode === 'lifescan' ? 'border-castleton-green ring-2 ring-castleton-green/10' : ''}`}
+            onClick={() => setImportMode('lifescan')}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DownloadCloud className="h-6 w-6 text-castleton-green" />
+                LifeScan API
+              </CardTitle>
+              <CardDescription>
+                Pull attendance data directly from LifeScan
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-500">
+                Automatically fetches data for the selected payroll period. Requires API connection.
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="md:col-span-2 flex justify-end">
+            <Button onClick={() => setStep(2)}>
+              Continue
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* Step 2: Select Sheet & Payroll Run */}
-      {step === 2 && currentSheet && (
+      {/* Step 2: Configure */}
+      {step === 2 && (
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Select Sheet & Payroll Run</CardTitle>
+              <CardTitle>Import Configuration ({importMode === 'excel' ? 'Excel' : 'LifeScan'})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Excel Sheet</Label>
-                  <Select value={selectedSheet || '__none__'} onValueChange={(v) => setSelectedSheet(v === '__none__' ? '' : v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select sheet" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sheets.filter(s => s.name && s.name.trim() !== '').map((sheet) => (
-                        <SelectItem key={sheet.name} value={sheet.name}>
-                          {sheet.name} ({sheet.rowCount} rows)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2">
                   <Label>Payroll Run</Label>
                   <Select value={selectedPayrollRun || '__none__'} onValueChange={(v) => setSelectedPayrollRun(v === '__none__' ? '' : v)}>
@@ -394,142 +430,86 @@ export default function ImportTimesheetPage() {
                       ) : (
                         payrollRuns.filter(r => r.id).map((run) => (
                           <SelectItem key={run.id} value={run.id}>
-                            {run.name}
+                            {run.name} {run.status !== 'DRAFT' && `(${run.status.charAt(0) + run.status.slice(1).toLowerCase()})`}
                           </SelectItem>
                         ))
                       )}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Auto-Detected Columns
-              </CardTitle>
-              <CardDescription>
-                The system automatically detected these columns from your Excel file
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {Object.entries(autoDetectedMapping).filter(([_, value]) => value).map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
-                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <div className="text-sm">
-                      <span className="font-medium text-green-800">{formatMappingKey(key)}</span>
-                      <span className="text-green-600 ml-1">→ {value}</span>
-                    </div>
+                {importMode === 'excel' && (
+                  <div className="space-y-2">
+                    {file ? (
+                      <div className="space-y-2">
+                        <Label>Selected File</Label>
+                        <div className="flex items-center justify-between p-2 border rounded-md">
+                          <span className="text-sm truncate">{file.name}</span>
+                          <Button variant="ghost" size="sm" onClick={() => { setFile(null); setSheets([]); }}>Change</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="file-upload" className="cursor-pointer">
+                          <div className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center hover:bg-gray-50 transition-colors">
+                            <span className="text-castleton-green font-medium">Click to upload Excel</span>
+                          </div>
+                        </Label>
+                        <Input
+                          id="file-upload"
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleFileChange}
+                          className="hidden"
+                          disabled={isLoading}
+                        />
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
 
-              {Object.keys(autoDetectedMapping).length === 0 && (
-                <div className="p-4 bg-amber-50 rounded-lg text-amber-800">
-                  <AlertTriangle className="h-5 w-5 inline mr-2" />
-                  No columns were auto-detected. Make sure your Excel headers match common names like:
-                  <ul className="mt-2 list-disc list-inside text-sm">
-                    <li><strong>Employee ID</strong> (required) - "Employee ID", "Emp ID", "ID", "No"</li>
-                    <li><strong>Date</strong> (required)</li>
-                    <li>Status, Time In, Time Out, AM-IN, AM-OUT, PM-IN, PM-OUT</li>
-                    <li>OT-IN, OT-OUT</li>
+              {importMode === 'excel' && file && sheets.length > 0 && (
+                <div className="space-y-4 mt-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label>Excel Sheet</Label>
+                    <Select value={selectedSheet || '__none__'} onValueChange={(v) => setSelectedSheet(v === '__none__' ? '' : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select sheet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sheets.filter(s => s.name && s.name.trim() !== '').map((sheet) => (
+                          <SelectItem key={sheet.name} value={sheet.name}>
+                            {sheet.name} ({sheet.rowCount} rows)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Auto-detected columns feedback */}
+                  {Object.keys(autoDetectedMapping).length > 0 && (
+                    <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                      <p className="text-sm text-castleton-green font-medium flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        {Object.keys(autoDetectedMapping).length} columns auto-detected
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {importMode === 'lifescan' && (
+                <div className="p-4 bg-castleton-green/10 rounded-lg border border-castleton-green/20">
+                  <h4 className="font-semibold text-castleton-green mb-2">Timesheet Rules Applied</h4>
+                  <ul className="text-sm space-y-1 text-dark-serpent/80">
+                    <li>Will fetch all attendance records for the selected payroll period.</li>
+                    <li>Matches employees by <strong>Employee ID</strong>.</li>
+                    <li>Automatically calculates Late, Undertime, and OT based on shift time (8-5 vs 9-6).</li>
                   </ul>
                 </div>
               )}
 
-              {autoDetectedMapping.employeeId && (
-                <div className="mt-4 p-3 bg-green-100 rounded-lg border border-green-300">
-                  <p className="text-sm text-green-800">
-                    <CheckCircle className="h-4 w-4 inline mr-2" />
-                    <strong>Employee ID column detected:</strong> "{autoDetectedMapping.employeeId}" will be used as the primary identifier to match employees in the masterlist.
-                  </p>
-                </div>
-              )}
-
-              {!autoDetectedMapping.employeeId && autoDetectedMapping.employeeName && (
-                <div className="mt-4 p-3 bg-amber-100 rounded-lg border border-amber-300">
-                  <p className="text-sm text-amber-800">
-                    <AlertTriangle className="h-4 w-4 inline mr-2" />
-                    <strong>No Employee ID column detected.</strong> Using Name column "{autoDetectedMapping.employeeName}" instead. For better accuracy, add an "Employee ID" or "ID" column to your Excel.
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg space-y-3">
-                <p className="text-sm text-blue-800 font-medium">
-                  Multiple Clock-In/Out Support:
-                </p>
-                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
-                  <li>Supports <strong>AM In, AM Out, PM In, PM Out</strong> columns</li>
-                  <li>Example: 8:00 AM In → 10:00 AM Out (break) → 11:00 AM In → 5:00 PM Out</li>
-                  <li>Total hours = (10:00-8:00) + (17:00-11:00) = 2hrs + 6hrs = 8hrs</li>
-                </ul>
-                
-                <p className="text-sm text-blue-800 font-medium mt-3">
-                  8-5 Shift Rules (Clock in ≤ 8:10 AM):
-                </p>
-                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
-                  <li><strong>Late:</strong> 8:01-8:10 AM = late (minutes from 8:00 AM)</li>
-                  <li><strong>Undertime:</strong> Leave before 5:00 PM</li>
-                  <li><strong>OT:</strong> Work 1+ hour beyond 5:00 PM (6:00 PM or later)</li>
-                </ul>
-                
-                <p className="text-sm text-blue-800 font-medium mt-3">
-                  9-6 Shift Rules (Clock in after 8:10 AM):
-                </p>
-                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
-                  <li><strong>Time In:</strong> Recorded as 9:00 AM (regardless of actual clock in)</li>
-                  <li><strong>Late:</strong> ≤9:05 AM not late, ≥9:06 AM late (minutes from 9:00 AM)</li>
-                  <li><strong>Undertime:</strong> Leave before 6:00 PM</li>
-                  <li><strong>OT:</strong> Work 1+ hour beyond 6:00 PM (7:00 PM or later)</li>
-                </ul>
-                
-                <p className="text-sm text-blue-800 font-medium mt-3">
-                  Other Rules:
-                </p>
-                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
-                  <li><strong>Absent:</strong> From Status column ("absent", "a", "awol")</li>
-                  <li><strong>VL/SL:</strong> Status "VL" or "SL" = paid day</li>
-                  <li><strong>Special Holiday:</strong> 30% of regular hours worked (OT not included)</li>
-                  <li><strong>KPI Voiding:</strong> Late &gt;3x OR absent &gt;2x <span className="font-semibold text-blue-900">per month</span></li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Data Preview</CardTitle>
-              <CardDescription>First 5 rows from the selected sheet</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {currentSheet.headers.map((header) => (
-                        <TableHead key={header}>{header}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentSheet.preview.map((row, i) => (
-                      <TableRow key={i}>
-                        {currentSheet.headers.map((header) => (
-                          <TableCell key={header}>
-                            {String(row[header] ?? '')}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
             </CardContent>
           </Card>
 
@@ -537,7 +517,7 @@ export default function ImportTimesheetPage() {
             <Button variant="outline" onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button onClick={handleValidate} disabled={isLoading}>
+            <Button onClick={handleValidate} disabled={isLoading || !selectedPayrollRun || (importMode === 'excel' && !file)}>
               {isLoading ? 'Validating...' : 'Validate & Continue'}
             </Button>
           </div>
@@ -549,16 +529,16 @@ export default function ImportTimesheetPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Validation Results</CardTitle>
+              <CardTitle>Validation Results ({importMode === 'excel' ? 'Excel' : 'LifeScan'})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-green-50 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span className="font-semibold text-green-800">Valid Rows</span>
+                    <CheckCircle className="h-5 w-5 text-castleton-green" />
+                    <span className="font-semibold text-castleton-green">Valid Rows</span>
                   </div>
-                  <p className="text-2xl font-bold text-green-600 mt-2">
+                  <p className="text-2xl font-bold text-castleton-green mt-2">
                     {validation.validRows}
                   </p>
                 </div>
@@ -597,95 +577,137 @@ export default function ImportTimesheetPage() {
           {(validation.missingEmployees.length > 0 ||
             validation.unrecognizedEmployees.length > 0 ||
             validation.invalidRows.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    Warnings & Issues
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="missing">
+                    <TabsList>
+                      <TabsTrigger value="missing">
+                        Missing ({validation.missingEmployees.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="unrecognized">
+                        Unrecognized ({validation.unrecognizedEmployees.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="invalid">
+                        Invalid ({validation.invalidRows.length})
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="missing" className="mt-4">
+                      {validation.missingEmployees.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            These employees from masterlist are not in the validated data.
+                            They will be marked as missing in the payroll.
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {validation.missingEmployees.map((empNo) => (
+                              <Badge key={empNo} variant="outline">
+                                {empNo}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          All employees in masterlist are present.
+                        </p>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="unrecognized" className="mt-4">
+                      {validation.unrecognizedEmployees.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            These employees in the file/API are not found in the masterlist.
+                            They will be skipped.
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {validation.unrecognizedEmployees.map((emp, i) => (
+                              <Badge key={i} variant="destructive">
+                                {emp.identifier}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          All employees are recognized.
+                        </p>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="invalid" className="mt-4">
+                      {validation.invalidRows.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Row</TableHead>
+                              <TableHead>Errors</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {validation.invalidRows.slice(0, 10).map((row, i) => (
+                              <TableRow key={i}>
+                                <TableCell>{row.rowIndex}</TableCell>
+                                <TableCell className="text-red-600">
+                                  {row.errors.join(', ')}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No invalid rows found.
+                        </p>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            )}
+
+          {/* LifeScan Preview if available */}
+          {validation.preview && validation.preview.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                  Warnings & Issues
-                </CardTitle>
+                <CardTitle>Data Preview</CardTitle>
+                <CardDescription>First 5 records to be imported</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="missing">
-                  <TabsList>
-                    <TabsTrigger value="missing">
-                      Missing ({validation.missingEmployees.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="unrecognized">
-                      Unrecognized ({validation.unrecognizedEmployees.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="invalid">
-                      Invalid ({validation.invalidRows.length})
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="missing" className="mt-4">
-                    {validation.missingEmployees.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          These employees from masterlist are not in the imported file.
-                          They will be marked as missing in the payroll.
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {validation.missingEmployees.map((empNo) => (
-                            <Badge key={empNo} variant="outline">
-                              {empNo}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        All employees in masterlist are present in the import.
-                      </p>
-                    )}
-                  </TabsContent>
-                  <TabsContent value="unrecognized" className="mt-4">
-                    {validation.unrecognizedEmployees.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          These employees in the file are not found in the masterlist.
-                          They will be skipped during import.
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {validation.unrecognizedEmployees.map((emp, i) => (
-                            <Badge key={i} variant="destructive">
-                              {emp.identifier}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        All employees in the file are recognized.
-                      </p>
-                    )}
-                  </TabsContent>
-                  <TabsContent value="invalid" className="mt-4">
-                    {validation.invalidRows.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Row</TableHead>
-                            <TableHead>Errors</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {validation.invalidRows.slice(0, 10).map((row, i) => (
-                            <TableRow key={i}>
-                              <TableCell>{row.rowIndex}</TableCell>
-                              <TableCell className="text-red-600">
-                                {row.errors.join(', ')}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No invalid rows found.
-                      </p>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Employee</TableHead>
+                        <TableHead>Time In</TableHead>
+                        <TableHead>Time Out</TableHead>
+                        <TableHead>Hours</TableHead>
+                        <TableHead>Late</TableHead>
+                        <TableHead>UT</TableHead>
+                        <TableHead>OT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {validation.preview.map((row: any, i: number) => (
+                        <TableRow key={i}>
+                          <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
+                          <TableCell>{row.employeeName}</TableCell>
+                          <TableCell>{row.timeIn || '-'}</TableCell>
+                          <TableCell>{row.timeOut || '-'}</TableCell>
+                          <TableCell>{row.hoursWorked?.toFixed(2) || '0'}</TableCell>
+                          <TableCell>{row.minutesLate || '0'}</TableCell>
+                          <TableCell>{row.undertimeMinutes || '0'}</TableCell>
+                          <TableCell>{row.overtimeHours?.toFixed(2) || '0'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           )}

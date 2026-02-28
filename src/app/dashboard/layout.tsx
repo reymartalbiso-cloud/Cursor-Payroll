@@ -39,7 +39,7 @@ export default function DashboardLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
           <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-sea-salt/60">
       <Sidebar />
       <main className="ml-64 min-h-screen p-6 transition-all duration-300">
         {children}

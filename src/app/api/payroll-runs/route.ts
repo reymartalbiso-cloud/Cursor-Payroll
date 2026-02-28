@@ -26,10 +26,17 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    const where = {
+    const where: any = {
       ...(year && { year: parseInt(year) }),
-      ...(status && { status: status as 'DRAFT' | 'REVIEWED' | 'FINALIZED' }),
     };
+
+    if (status) {
+      if (status.includes(',')) {
+        where.status = { in: status.split(',') };
+      } else {
+        where.status = status;
+      }
+    }
 
     const [payrollRuns, total] = await Promise.all([
       prisma.payrollRun.findMany({
@@ -95,7 +102,6 @@ export async function POST(request: NextRequest) {
     const payrollSettings = {
       govDeductionMode: (settingsMap.gov_deduction_mode || 'fixed_per_cutoff') as 'fixed_per_cutoff' | 'prorated_by_days',
       standardDailyHours: parseInt(settingsMap.standard_daily_hours || '8'),
-      overtimeMultiplier: parseFloat(settingsMap.overtime_multiplier || '1.25'),
     };
 
     // Create payroll run
@@ -117,7 +123,6 @@ export async function POST(request: NextRequest) {
         notes,
         govDeductionMode: payrollSettings.govDeductionMode,
         standardDailyHours: payrollSettings.standardDailyHours,
-        overtimeMultiplier: payrollSettings.overtimeMultiplier,
       },
     });
 

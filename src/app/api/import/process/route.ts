@@ -26,10 +26,10 @@ async function getOtherCutoffAttendance(
   month: number,
   currentCutoffType: CutoffType
 ): Promise<AttendanceSummary | undefined> {
-  const otherCutoffType = currentCutoffType === CutoffType.FIRST_HALF 
-    ? CutoffType.SECOND_HALF 
+  const otherCutoffType = currentCutoffType === CutoffType.FIRST_HALF
+    ? CutoffType.SECOND_HALF
     : CutoffType.FIRST_HALF;
-  
+
   // Find the other payroll run for the same month
   const otherPayrollRun = await prisma.payrollRun.findFirst({
     where: {
@@ -38,11 +38,11 @@ async function getOtherCutoffAttendance(
       cutoffType: otherCutoffType,
     },
   });
-  
+
   if (!otherPayrollRun) {
     return undefined;
   }
-  
+
   // Get timesheet entries from the other cutoff
   const otherEntries = await prisma.timesheetEntry.findMany({
     where: {
@@ -50,11 +50,11 @@ async function getOtherCutoffAttendance(
       employeeId,
     },
   });
-  
+
   if (otherEntries.length === 0) {
     return undefined;
   }
-  
+
   const eligibleWorkdays = getEligibleWorkdays(year, month, otherCutoffType);
   return calculateAttendanceSummary(otherEntries, eligibleWorkdays);
 }
@@ -202,7 +202,7 @@ export async function PUT(request: NextRequest) {
 
     // Primary lookup: by Employee ID (employeeNo) - THIS IS THE MAIN IDENTIFIER
     const employeeByNo = new Map(employees.map(e => [e.employeeNo.toLowerCase(), e]));
-    
+
     // Secondary lookups for fallback matching
     const employeeByFirstName = new Map(employees.map(e => [e.firstName.toLowerCase(), e]));
     const employeeByFullName = new Map(employees.map(e => [
@@ -213,12 +213,13 @@ export async function PUT(request: NextRequest) {
     ]));
 
     // Get settings
+    // Get settings from PayrollRun (snapshot) or fall back to global settings/defaults
     const settings = await prisma.setting.findMany();
     const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
+
     const payrollSettings = {
-      govDeductionMode: (settingsMap.gov_deduction_mode || 'fixed_per_cutoff') as 'fixed_per_cutoff' | 'prorated_by_days',
-      standardDailyHours: parseInt(settingsMap.standard_daily_hours || '8'),
-      overtimeMultiplier: parseFloat(settingsMap.overtime_multiplier || '1.25'),
+      govDeductionMode: (payrollRun.govDeductionMode || settingsMap.gov_deduction_mode || 'fixed_per_cutoff') as 'fixed_per_cutoff' | 'prorated_by_days',
+      standardDailyHours: payrollRun.standardDailyHours || parseInt(settingsMap.standard_daily_hours || '8'),
     };
 
     // Get holidays for this payroll period
@@ -240,28 +241,28 @@ export async function PUT(request: NextRequest) {
 
     // Group rows by employee
     const employeeEntries = new Map<string, typeof parsedRows>();
-    
+
     for (const row of parsedRows) {
       if (row.errors.length > 0) continue;
-      
+
       let employee;
-      
+
       // PRIMARY: Match by Employee ID (most reliable)
       if (row.employeeId) {
         employee = employeeByNo.get(row.employeeId.toLowerCase().trim());
       }
-      
+
       // FALLBACK: Match by name if Employee ID not found
       if (!employee && row.employeeName) {
         const nameLower = row.employeeName.toLowerCase().trim();
         // Try different name formats
         employee = employeeByFirstName.get(nameLower) ||      // "Reymart"
-                   employeeByFirstLastName.get(nameLower) ||   // "Reymart Garcia"
-                   employeeByFullName.get(nameLower);          // "Garcia, Reymart"
+          employeeByFirstLastName.get(nameLower) ||   // "Reymart Garcia"
+          employeeByFullName.get(nameLower);          // "Garcia, Reymart"
       }
-      
+
       if (!employee || employee.status !== 'ACTIVE') continue;
-      
+
       const entries = employeeEntries.get(employee.id) || [];
       entries.push(row);
       employeeEntries.set(employee.id, entries);
@@ -269,15 +270,15 @@ export async function PUT(request: NextRequest) {
 
     // Create timesheet entries and update payslips
     const importedEmployeeIds = new Set<string>();
-    
-    for (const [employeeId, rows] of employeeEntries) {
+
+    for (const [employeeId, rows] of Array.from(employeeEntries.entries())) {
       const employee = employees.find(e => e.id === employeeId)!;
       importedEmployeeIds.add(employeeId);
 
       // Create timesheet entries
       for (const row of rows) {
         if (!row.date) continue;
-        
+
         // Skip Sundays
         if (isSunday(row.date)) continue;
 

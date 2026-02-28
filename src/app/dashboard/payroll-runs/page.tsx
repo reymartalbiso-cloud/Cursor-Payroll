@@ -56,13 +56,18 @@ export default function PayrollRunsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [filterYear, setFilterYear] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
-  
+
   const [newRun, setNewRun] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
     cutoffType: 'FIRST_HALF' as 'FIRST_HALF' | 'SECOND_HALF',
     payDate: '',
   });
+
+  // State for Generate Annual Runs
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [generateYear, setGenerateYear] = useState<string>(new Date().getFullYear().toString());
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { toast } = useToast();
 
@@ -175,6 +180,44 @@ export default function PayrollRunsPage() {
     }
   };
 
+  const handleGenerateAnnual = async () => {
+    if (!confirm(`Are you sure you want to generate payroll runs for the entire year ${generateYear}? This will create 24 runs (First & Second Half for Jan-Dec) if they don't exist.`)) return;
+
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/payroll-runs/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: parseInt(generateYear) }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate runs');
+      }
+
+      toast({
+        title: 'Success',
+        description: data.message || `Generated runs for ${generateYear}`,
+      });
+
+      setIsGenerateDialogOpen(false);
+      // If the generated year matches the filter or no filter, refresh
+      if (!filterYear || filterYear === generateYear) {
+        fetchPayrollRuns();
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to generate runs',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'DRAFT':
@@ -204,10 +247,16 @@ export default function PayrollRunsPage() {
             Manage payroll runs per cutoff period
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Payroll Run
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsGenerateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Generate Annual Runs
+          </Button>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Payroll Run
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -262,7 +311,7 @@ export default function PayrollRunsPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
             </div>
           ) : (
             <>
@@ -443,6 +492,55 @@ export default function PayrollRunsPage() {
             </Button>
             <Button onClick={handleCreate} disabled={isSaving}>
               {isSaving ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Annual Runs Dialog */}
+      <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generate Annual Payroll Runs</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              This will automatically generate 24 payroll runs for the selected year (January to December, First & Second Half).
+              Existing runs for this year will be skipped.
+            </p>
+            <div className="space-y-2">
+              <Label>Year to Generate</Label>
+              <Select
+                value={generateYear}
+                onValueChange={setGenerateYear}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((y) => (
+                    <SelectItem key={y} value={y.toString()}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-saffron/10 rounded-lg text-sm text-dark-serpent/80">
+              <strong>Note:</strong>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>1st Half: 1st - 15th (Pay Date: 15th)</li>
+                <li>2nd Half: 16th - End (Pay Date: End of Month)</li>
+                <li>Gov. Deductions applied only on 2nd Half.</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsGenerateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleGenerateAnnual} disabled={isGenerating}>
+              {isGenerating ? 'Generating...' : 'Generate Runs'}
             </Button>
           </DialogFooter>
         </DialogContent>

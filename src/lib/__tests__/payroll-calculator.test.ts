@@ -130,7 +130,6 @@ describe('Payroll Calculator', () => {
     const settings = {
       govDeductionMode: 'fixed_per_cutoff' as const,
       standardDailyHours: 8,
-      overtimeMultiplier: 1.25,
     };
 
     it('should NOT apply government deductions for FIRST_HALF cutoff (1-15)', () => {

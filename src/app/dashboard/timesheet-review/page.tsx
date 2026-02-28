@@ -30,13 +30,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Search, 
-  Edit, 
-  ChevronLeft, 
-  ChevronRight, 
-  ArrowUpDown, 
-  ArrowUp, 
+import {
+  Search,
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  ArrowUp,
   ArrowDown,
   Clock,
   UserX,
@@ -117,12 +117,12 @@ export default function TimesheetReviewPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  
+
   // Edit dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimesheetEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const { toast } = useToast();
 
   // Fetch payroll runs
@@ -158,7 +158,7 @@ export default function TimesheetReviewPage() {
         ...(filterLate !== 'all' && { filterLate }),
         ...(filterAbsent !== 'all' && { filterAbsent }),
       });
-      
+
       const res = await fetch(`/api/timesheet-entries?${params}`);
       if (res.ok) {
         const data = await res.json();
@@ -211,8 +211,8 @@ export default function TimesheetReviewPage() {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
-    return sortOrder === 'asc' 
-      ? <ArrowUp className="h-4 w-4 ml-1" /> 
+    return sortOrder === 'asc'
+      ? <ArrowUp className="h-4 w-4 ml-1" />
       : <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
@@ -228,7 +228,7 @@ export default function TimesheetReviewPage() {
 
   const handleSaveEdit = async () => {
     if (!editingEntry) return;
-    
+
     setIsSaving(true);
     try {
       const res = await fetch(`/api/timesheet-entries/${editingEntry.id}`, {
@@ -286,7 +286,7 @@ export default function TimesheetReviewPage() {
 
   const getStatusBadge = (entry: TimesheetEntry) => {
     if (entry.isAbsent) {
-      return entry.isAbsentExcused 
+      return entry.isAbsentExcused
         ? <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">Absent (Excused)</Badge>
         : <Badge variant="destructive">Absent</Badge>;
     }
@@ -324,7 +324,7 @@ export default function TimesheetReviewPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
             </div>
           ) : payrollRuns.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -399,7 +399,7 @@ export default function TimesheetReviewPage() {
                             />
                           </div>
                         </div>
-                        
+
                         <Select
                           value={filterLate}
                           onValueChange={(v) => {
@@ -416,7 +416,7 @@ export default function TimesheetReviewPage() {
                             <SelectItem value="excused">Excused Only</SelectItem>
                           </SelectContent>
                         </Select>
-                        
+
                         <Select
                           value={filterAbsent}
                           onValueChange={(v) => {
@@ -442,18 +442,18 @@ export default function TimesheetReviewPage() {
                             <Clock className="h-5 w-5 text-orange-500" />
                             <div>
                               <p className="text-xs text-muted-foreground">Late</p>
-                              <p className="font-semibold">{stats.lateCount} <span className="text-xs font-normal text-green-600">({stats.excusedLateCount} excused)</span></p>
+                              <p className="font-semibold">{stats.lateCount} <span className="text-xs font-normal text-castleton-green">({stats.excusedLateCount} excused)</span></p>
                             </div>
                           </div>
-                          
+
                           <div className="bg-red-50 p-3 rounded-lg flex items-center gap-2">
                             <UserX className="h-5 w-5 text-red-500" />
                             <div>
                               <p className="text-xs text-muted-foreground">Absent</p>
-                              <p className="font-semibold">{stats.absentCount} <span className="text-xs font-normal text-green-600">({stats.excusedAbsentCount} excused)</span></p>
+                              <p className="font-semibold">{stats.absentCount} <span className="text-xs font-normal text-castleton-green">({stats.excusedAbsentCount} excused)</span></p>
                             </div>
                           </div>
-                          
+
                           <div className="bg-yellow-50 p-3 rounded-lg flex items-center gap-2">
                             <AlertCircle className="h-5 w-5 text-yellow-500" />
                             <div>
@@ -461,9 +461,9 @@ export default function TimesheetReviewPage() {
                               <p className="font-semibold">{stats.totalLateMinutes}</p>
                             </div>
                           </div>
-                          
-                          <div className="bg-blue-50 p-3 rounded-lg flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-blue-500" />
+
+                          <div className="bg-castleton-green/10 p-3 rounded-lg flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-castleton-green" />
                             <div>
                               <p className="text-xs text-muted-foreground">Total Entries</p>
                               <p className="font-semibold">{stats.totalEntries}</p>
@@ -475,7 +475,7 @@ export default function TimesheetReviewPage() {
                       {/* Entries Table */}
                       {isLoadingEntries ? (
                         <div className="flex justify-center py-8">
-                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
                         </div>
                       ) : (
                         <>
@@ -535,7 +535,7 @@ export default function TimesheetReviewPage() {
                                     <TableCell>
                                       <div className="flex items-center gap-1">
                                         {entry.adjustedLateMinutes !== null ? (
-                                          <span className="text-blue-600" title={`Original: ${entry.minutesLate}`}>
+                                          <span className="text-castleton-green" title={`Original: ${entry.minutesLate}`}>
                                             {entry.adjustedLateMinutes}*
                                           </span>
                                         ) : (
@@ -544,20 +544,20 @@ export default function TimesheetReviewPage() {
                                           ) : '-'
                                         )}
                                         {entry.isLateExcused && (
-                                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700">E</Badge>
+                                          <Badge variant="outline" className="text-xs bg-paper text-castleton-green">E</Badge>
                                         )}
                                       </div>
                                     </TableCell>
                                     <TableCell>
                                       {entry.adjustedUndertimeMinutes !== null ? (
-                                        <span className="text-blue-600">{entry.adjustedUndertimeMinutes}*</span>
+                                        <span className="text-castleton-green">{entry.adjustedUndertimeMinutes}*</span>
                                       ) : (
                                         entry.undertimeMinutes > 0 ? entry.undertimeMinutes : '-'
                                       )}
                                     </TableCell>
                                     <TableCell>
                                       {entry.adjustedOvertimeHours !== null ? (
-                                        <span className="text-blue-600">{formatOvertimeHours(entry.adjustedOvertimeHours)}*</span>
+                                        <span className="text-castleton-green">{formatOvertimeHours(entry.adjustedOvertimeHours)}*</span>
                                       ) : (
                                         formatOvertimeHours(entry.overtimeHours)
                                       )}
@@ -642,7 +642,7 @@ export default function TimesheetReviewPage() {
                     <Label htmlFor="isLateExcused">Excuse Late (won&apos;t affect KPI)</Label>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -675,7 +675,7 @@ export default function TimesheetReviewPage() {
                       }
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="adjustedUndertimeMinutes">Undertime Mins</Label>
                     <Input
@@ -691,7 +691,7 @@ export default function TimesheetReviewPage() {
                       }
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="adjustedOvertimeHours">OT (decimal hrs)</Label>
                     <Input

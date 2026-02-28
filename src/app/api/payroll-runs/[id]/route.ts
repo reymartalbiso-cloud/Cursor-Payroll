@@ -62,9 +62,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Payroll run not found' }, { status: 404 });
     }
 
-    if (payrollRun.status === 'FINALIZED' && status !== 'FINALIZED') {
+    // Prevent modification if finalized, UNLESS we are reverting status to DRAFT (unlocking)
+    if (payrollRun.status === 'FINALIZED' && status && status !== 'FINALIZED' && status !== 'DRAFT') {
       return NextResponse.json(
-        { error: 'Cannot modify a finalized payroll run' },
+        { error: 'Cannot modify a finalized payroll run. Please unlock it first.' },
         { status: 400 }
       );
     }

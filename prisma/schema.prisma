@@ -149,13 +149,13 @@ model TimesheetEntry {
   date            DateTime
   timeIn          String?
   timeOut         String?
-  hoursWorked     Decimal?    @db.Decimal(5, 2)
+  hoursWorked     Decimal?    @db.Decimal(10, 5)
   minutesLate     Int         @default(0)
   undertimeMinutes Int        @default(0)
   isAbsent        Boolean     @default(false)
   isOnLeave       Boolean     @default(false)   // VL or SL - paid leave
   leaveType       String?     // 'VL' (Vacation Leave) or 'SL' (Sick Leave)
-  overtimeHours   Decimal     @default(0) @db.Decimal(5, 2)
+  overtimeHours   Decimal     @default(0) @db.Decimal(10, 5)
   holidayPay      Decimal     @default(0) @db.Decimal(12, 2)
   isHoliday       Boolean     @default(false)
   holidayType     String?     // regular, special
@@ -165,7 +165,7 @@ model TimesheetEntry {
   isAbsentExcused     Boolean   @default(false)  // If true, absent won't count for KPI voiding
   adjustedLateMinutes Int?      // Override calculated late minutes (null = use calculated)
   adjustedUndertimeMinutes Int? // Override calculated undertime (null = use calculated)
-  adjustedOvertimeHours Decimal? @db.Decimal(5, 2) // Override calculated OT (null = use calculated)
+  adjustedOvertimeHours Decimal? @db.Decimal(10, 5) // Override calculated OT (null = use calculated)
   adjustmentRemarks   String?   // Notes for adjustments (e.g., "Approved by Manager")
   adjustedBy          String?   // User who made the adjustment
   adjustedAt          DateTime? // When adjustment was made
@@ -203,7 +203,7 @@ model Payslip {
   absentDays      Int
   totalLateMinutes Int        @default(0)
   totalUndertimeMinutes Int   @default(0)
-  totalOvertimeHours Decimal  @default(0) @db.Decimal(6, 2)
+  totalOvertimeHours Decimal  @default(0) @db.Decimal(10, 5)
   
   // Earnings
   basicPay        Decimal     @db.Decimal(12, 2)

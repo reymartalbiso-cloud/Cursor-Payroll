@@ -53,24 +53,24 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen bg-slate-900 text-white transition-all duration-300',
+        'fixed left-0 top-0 z-40 h-screen bg-dark-serpent text-white transition-all duration-300',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className={cn(
-          'flex h-16 items-center border-b border-slate-700 px-4',
+          'flex h-16 items-center border-b border-castleton-green/30 px-4',
           collapsed ? 'justify-center' : 'justify-between'
         )}>
           {!collapsed && (
-            <span className="text-xl font-bold text-blue-400">Payroll</span>
+            <span className="text-xl font-bold text-saffron">Payroll</span>
           )}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setCollapsed(!collapsed)}
-            className="text-slate-400 hover:text-white hover:bg-slate-800"
+            className="text-white/60 hover:text-white hover:bg-castleton-green/20"
           >
             {collapsed ? (
               <ChevronRight className="h-5 w-5" />
@@ -91,8 +91,8 @@ export function Sidebar() {
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors',
                   isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                    ? 'bg-castleton-green text-white shadow-sm'
+                    : 'text-white/70 hover:bg-castleton-green/40 hover:text-white',
                   collapsed && 'justify-center'
                 )}
                 title={collapsed ? item.label : undefined}
@@ -109,8 +109,8 @@ export function Sidebar() {
           {!collapsed && user && (
             <div className="mb-3">
               <p className="text-sm font-medium truncate">{user.name}</p>
-              <p className="text-xs text-slate-400 truncate">{user.email}</p>
-              <span className="mt-1 inline-block rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+              <p className="text-xs text-white/50 truncate">{user.email}</p>
+              <span className="mt-1 inline-block rounded-full bg-saffron/20 px-2 py-0.5 text-xs text-saffron">
                 {user.role.replace('_', ' ')}
               </span>
             </div>
@@ -120,7 +120,7 @@ export function Sidebar() {
             size={collapsed ? 'icon' : 'default'}
             onClick={handleLogout}
             className={cn(
-              'text-slate-300 hover:bg-slate-800 hover:text-white',
+              'text-white/70 hover:bg-castleton-green/40 hover:text-white',
               !collapsed && 'w-full justify-start'
             )}
             title={collapsed ? 'Logout' : undefined}
@@ -128,6 +128,13 @@ export function Sidebar() {
             <LogOut className="h-5 w-5" />
             {!collapsed && <span className="ml-2">Logout</span>}
           </Button>
+          {!collapsed && (
+            <div className="mt-4 text-center">
+              <p className="text-[10px] text-white/30 uppercase tracking-widest font-medium">
+                Powered by: Lifewood ph
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </aside>

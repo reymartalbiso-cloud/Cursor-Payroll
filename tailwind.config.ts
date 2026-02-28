@@ -43,6 +43,12 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        'paper': 'hsl(var(--secondary))',
+        'sea-salt': 'hsl(var(--background))',
+        'dark-serpent': 'hsl(var(--dark-serpent))',
+        'castleton-green': 'hsl(var(--castleton-green))',
+        'saffron': 'hsl(var(--accent))',
+        'earth-yellow': 'hsl(var(--earth-yellow))',
       },
       borderRadius: {
         lg: 'var(--radius)',

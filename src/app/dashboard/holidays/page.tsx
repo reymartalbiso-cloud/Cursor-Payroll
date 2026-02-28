@@ -51,12 +51,12 @@ export default function HolidaysPage() {
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
-  
+
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  
+
   const isAdmin = user?.role === 'ADMIN';
-  
+
   // Form state
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
@@ -112,10 +112,10 @@ export default function HolidaysPage() {
 
     setIsSaving(true);
     try {
-      const url = editingHoliday 
-        ? `/api/holidays/${editingHoliday.id}` 
+      const url = editingHoliday
+        ? `/api/holidays/${editingHoliday.id}`
         : '/api/holidays';
-      
+
       const res = await fetch(url, {
         method: editingHoliday ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -233,7 +233,7 @@ export default function HolidaysPage() {
 
       {/* Holiday Rules Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-castleton-green/10 border-castleton-green/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-blue-800 flex items-center gap-2">
               <Calendar className="h-5 w-5" />
@@ -293,7 +293,7 @@ export default function HolidaysPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
             </div>
           ) : holidays.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -325,7 +325,7 @@ export default function HolidaysPage() {
                     </TableCell>
                     <TableCell>
                       {holiday.type === 'REGULAR' ? (
-                        <span className="text-blue-600 font-medium">100% Basic Pay</span>
+                        <span className="text-castleton-green font-medium">100% Basic Pay</span>
                       ) : (
                         <span className="text-amber-600 font-medium">30% Daily Rate</span>
                       )}

@@ -79,7 +79,6 @@ export async function POST(
     const payrollSettings = {
       govDeductionMode: (payrollRun.govDeductionMode || '16_end_only') as 'fixed_per_cutoff' | 'prorated_by_days',
       standardDailyHours: payrollRun.standardDailyHours || 8,
-      overtimeMultiplier: payrollRun.overtimeMultiplier || 1.25,
     };
 
     const cutoffEnum = payrollRun.cutoffType as CutoffType;

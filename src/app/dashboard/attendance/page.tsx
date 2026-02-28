@@ -99,8 +99,8 @@ export default function AttendanceSummaryPage() {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
-    return sortOrder === 'asc' 
-      ? <ArrowUp className="h-4 w-4 ml-1" /> 
+    return sortOrder === 'asc'
+      ? <ArrowUp className="h-4 w-4 ml-1" />
       : <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
@@ -186,7 +186,7 @@ export default function AttendanceSummaryPage() {
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="h-5 w-5 text-blue-600" />
+                  <Users className="h-5 w-5 text-castleton-green" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Employees</p>
@@ -250,7 +250,7 @@ export default function AttendanceSummaryPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
             </div>
           ) : (
             <Table>

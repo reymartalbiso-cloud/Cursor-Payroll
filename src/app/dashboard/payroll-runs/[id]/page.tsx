@@ -20,6 +20,7 @@ import {
   FileText,
   Download,
   Lock,
+  Unlock,
   Upload,
   AlertTriangle,
   Search,
@@ -168,14 +169,37 @@ export default function PayrollRunDetailPage() {
     }
   };
 
+  const handleUnlock = async () => {
+    if (!confirm('Are you sure you want to unlock this payroll run? This will revert it to Draft status and allow modifications.')) return;
+
+    try {
+      const res = await fetch(`/api/payroll-runs/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'DRAFT' }),
+      });
+
+      if (!res.ok) throw new Error('Failed to unlock');
+
+      toast({ title: 'Success', description: 'Payroll run unlocked (reverted to Draft)' });
+      fetchPayrollRun();
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to unlock',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleExportAll = async () => {
     try {
       const res = await fetch(`/api/payroll-runs/${id}/export`, {
         method: 'POST',
       });
-      
+
       if (!res.ok) throw new Error('Export failed');
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -185,7 +209,7 @@ export default function PayrollRunDetailPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-      
+
       toast({ title: 'Success', description: 'Export completed' });
     } catch {
       toast({
@@ -228,7 +252,7 @@ export default function PayrollRunDetailPage() {
   if (isLoading || !payrollRun) {
     return (
       <div className="flex justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
       </div>
     );
   }
@@ -317,7 +341,7 @@ export default function PayrollRunDetailPage() {
             <CardTitle className="text-sm font-medium">Total Net Pay</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold text-green-600">{formatCurrency(totalNet)}</p>
+            <p className="text-xl font-bold text-primary">{formatCurrency(totalNet)}</p>
           </CardContent>
         </Card>
       </div>
@@ -342,7 +366,7 @@ export default function PayrollRunDetailPage() {
       )}
 
       {payrollRun.cutoffType === 'SECOND_HALF' && (
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-castleton-green/20 bg-castleton-green/10">
           <CardContent className="pt-6">
             <p className="text-sm text-blue-800">
               <strong>Government Deductions Applied:</strong> SSS, PhilHealth, and Pag-IBIG deductions
@@ -373,6 +397,12 @@ export default function PayrollRunDetailPage() {
               Finalize Payroll
             </Button>
           </>
+        )}
+        {payrollRun.status === 'FINALIZED' && (
+          <Button variant="outline" onClick={handleUnlock}>
+            <Unlock className="h-4 w-4 mr-2" />
+            Unlock Payroll
+          </Button>
         )}
         <Button variant="outline" onClick={handleExportAll}>
           <Download className="h-4 w-4 mr-2" />
@@ -452,7 +482,7 @@ export default function PayrollRunDetailPage() {
                           className="w-24 h-8 text-right"
                         />
                         {savingKpi[payslip.id] && (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-castleton-green border-t-transparent" />
                         )}
                       </div>
                     ) : (
@@ -465,7 +495,7 @@ export default function PayrollRunDetailPage() {
                   <TableCell className="text-right text-red-600">
                     {formatCurrency(payslip.totalDeductions)}
                   </TableCell>
-                  <TableCell className="text-right font-bold text-green-600">
+                  <TableCell className="text-right font-bold text-primary">
                     {formatCurrency(payslip.netPay)}
                   </TableCell>
                   <TableCell>

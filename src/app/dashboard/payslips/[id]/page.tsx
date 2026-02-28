@@ -204,7 +204,7 @@ export default function PayslipDetailPage() {
   if (isLoading || !payslip) {
     return (
       <div className="flex justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
       </div>
     );
   }
@@ -298,7 +298,7 @@ export default function PayslipDetailPage() {
                   <p className="text-xs text-muted-foreground">Eligible Days</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-600">{payslip.presentDays}</p>
+                  <p className="text-2xl font-bold text-primary">{payslip.presentDays}</p>
                   <p className="text-xs text-muted-foreground">Present</p>
                 </div>
                 <div>
@@ -332,16 +332,16 @@ export default function PayslipDetailPage() {
                     <TableRow>
                       <TableCell>Holiday</TableCell>
                       <TableCell className="text-right">
-                        {parseFloat(String(payslip.holidayPay)) > 0 
-                          ? formatCurrency(payslip.holidayPay) 
+                        {parseFloat(String(payslip.holidayPay)) > 0
+                          ? formatCurrency(payslip.holidayPay)
                           : '-'}
                       </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Overtime</TableCell>
                       <TableCell className="text-right">
-                        {parseFloat(String(payslip.overtimePay)) > 0 
-                          ? formatCurrency(payslip.overtimePay) 
+                        {parseFloat(String(payslip.overtimePay)) > 0
+                          ? formatCurrency(payslip.overtimePay)
                           : '-'}
                       </TableCell>
                     </TableRow>
@@ -357,7 +357,7 @@ export default function PayslipDetailPage() {
                     </TableRow>
                     <TableRow className="border-t-2">
                       <TableCell className="font-bold">Gross Pay</TableCell>
-                      <TableCell className="text-right font-bold text-green-600">
+                      <TableCell className="text-right font-bold text-primary">
                         {formatCurrency(payslip.grossPay)}
                       </TableCell>
                     </TableRow>
@@ -379,16 +379,16 @@ export default function PayslipDetailPage() {
                     <TableRow>
                       <TableCell>Absences</TableCell>
                       <TableCell className="text-right">
-                        {parseFloat(String(payslip.absenceDeduction)) > 0 
-                          ? formatCurrency(payslip.absenceDeduction) 
+                        {parseFloat(String(payslip.absenceDeduction)) > 0
+                          ? formatCurrency(payslip.absenceDeduction)
                           : '-'}
                       </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Undertime/Late</TableCell>
                       <TableCell className="text-right">
-                        {(parseFloat(String(payslip.lateDeduction)) + parseFloat(String(payslip.undertimeDeduction))) > 0 
-                          ? formatCurrency(parseFloat(String(payslip.lateDeduction)) + parseFloat(String(payslip.undertimeDeduction))) 
+                        {(parseFloat(String(payslip.lateDeduction)) + parseFloat(String(payslip.undertimeDeduction))) > 0
+                          ? formatCurrency(parseFloat(String(payslip.lateDeduction)) + parseFloat(String(payslip.undertimeDeduction)))
                           : '-'}
                       </TableCell>
                     </TableRow>
@@ -399,48 +399,48 @@ export default function PayslipDetailPage() {
                     <TableRow>
                       <TableCell>SSS</TableCell>
                       <TableCell className="text-right">
-                        {payslip.govDeductionsApplied && parseFloat(String(payslip.sssDeduction)) > 0 
-                          ? formatCurrency(payslip.sssDeduction) 
+                        {payslip.govDeductionsApplied && parseFloat(String(payslip.sssDeduction)) > 0
+                          ? formatCurrency(payslip.sssDeduction)
                           : '-'}
                       </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Philhealth</TableCell>
                       <TableCell className="text-right">
-                        {payslip.govDeductionsApplied && parseFloat(String(payslip.philhealthDeduction)) > 0 
-                          ? formatCurrency(payslip.philhealthDeduction) 
+                        {payslip.govDeductionsApplied && parseFloat(String(payslip.philhealthDeduction)) > 0
+                          ? formatCurrency(payslip.philhealthDeduction)
                           : '-'}
                       </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Pag-ibig</TableCell>
                       <TableCell className="text-right">
-                        {payslip.govDeductionsApplied && parseFloat(String(payslip.pagibigDeduction)) > 0 
-                          ? formatCurrency(payslip.pagibigDeduction) 
+                        {payslip.govDeductionsApplied && parseFloat(String(payslip.pagibigDeduction)) > 0
+                          ? formatCurrency(payslip.pagibigDeduction)
                           : '-'}
                       </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Pag-ibig Loan</TableCell>
                       <TableCell className="text-right">
-                        {parseFloat(String(payslip.pagibigLoanDeduction)) > 0 
-                          ? formatCurrency(payslip.pagibigLoanDeduction) 
+                        {parseFloat(String(payslip.pagibigLoanDeduction)) > 0
+                          ? formatCurrency(payslip.pagibigLoanDeduction)
                           : '-'}
                       </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>SSS Salary Loan</TableCell>
                       <TableCell className="text-right">
-                        {parseFloat(String(payslip.sssLoanDeduction)) > 0 
-                          ? formatCurrency(payslip.sssLoanDeduction) 
+                        {parseFloat(String(payslip.sssLoanDeduction)) > 0
+                          ? formatCurrency(payslip.sssLoanDeduction)
                           : '-'}
                       </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Cash Advances</TableCell>
                       <TableCell className="text-right">
-                        {parseFloat(String(payslip.cashAdvanceDeduction)) > 0 
-                          ? formatCurrency(payslip.cashAdvanceDeduction) 
+                        {parseFloat(String(payslip.cashAdvanceDeduction)) > 0
+                          ? formatCurrency(payslip.cashAdvanceDeduction)
                           : '-'}
                       </TableCell>
                     </TableRow>
@@ -456,9 +456,9 @@ export default function PayslipDetailPage() {
             </div>
 
             {/* Net Pay */}
-            <div className="bg-blue-50 p-6 rounded-lg text-center mb-6">
+            <div className="bg-castleton-green/10 p-6 rounded-lg text-center mb-6">
               <p className="text-sm text-muted-foreground">NET PAY</p>
-              <p className="text-4xl font-bold text-blue-600">{formatCurrency(payslip.netPay)}</p>
+              <p className="text-4xl font-bold text-castleton-green">{formatCurrency(payslip.netPay)}</p>
               <p className="text-sm mt-2 italic">{payslip.netPayInWords}</p>
             </div>
 
@@ -552,12 +552,13 @@ export default function PayslipDetailPage() {
                 <p className="text-muted-foreground">{payslip.computationBreakdown?.overtimeFormula}</p>
               </div>
               <div className="p-3 bg-green-50 rounded">
-                <p className="font-medium text-green-800">Holiday Pay & Leaves</p>
-                <p className="text-green-700">{payslip.computationBreakdown?.holidayNote}</p>
+                <p className="font-medium text-castleton-green">Holiday Pay & Leaves</p>
+                <p className="text-dark-serpent/80">{payslip.computationBreakdown?.holidayNote}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded">
-                <p className="font-medium text-blue-800">KPI Status</p>
-                <p className="text-blue-700">{payslip.computationBreakdown?.kpiNote}</p>
+              <div className="p-3 bg-saffron/10 rounded">
+                <p className="font-medium text-castleton-green">KPI Status</p>
+                <p className="text-dark-serpent/80">
+                  {payslip.computationBreakdown?.kpiNote}</p>
               </div>
               <div className="p-3 bg-amber-50 rounded">
                 <p className="font-medium text-amber-800">Government Deductions</p>

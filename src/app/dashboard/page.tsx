@@ -114,8 +114,8 @@ export default function DashboardPage() {
         <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/import'}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-paper rounded-lg">
+                <FileText className="h-5 w-5 text-castleton-green" />
               </div>
               Import Timesheet
             </CardTitle>
@@ -128,8 +128,8 @@ export default function DashboardPage() {
         <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/payroll-runs'}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Calendar className="h-5 w-5 text-green-600" />
+              <div className="p-2 bg-paper rounded-lg">
+                <Calendar className="h-5 w-5 text-castleton-green" />
               </div>
               Manage Payroll Runs
             </CardTitle>
@@ -142,8 +142,8 @@ export default function DashboardPage() {
         <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/employees'}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Users className="h-5 w-5 text-purple-600" />
+              <div className="p-2 bg-paper rounded-lg">
+                <Users className="h-5 w-5 text-castleton-green" />
               </div>
               Employee Management
             </CardTitle>
@@ -162,30 +162,30 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-900">Workdays</h4>
-              <p className="text-sm text-blue-700 mt-1">
+            <div className="p-4 bg-paper rounded-lg border border-castleton-green/10">
+              <h4 className="font-semibold text-castleton-green">Workdays</h4>
+              <p className="text-sm text-dark-serpent/80 mt-1">
                 Monday to Saturday only. Sundays are excluded from all calculations including absences and deductions.
               </p>
             </div>
-            <div className="p-4 bg-amber-50 rounded-lg">
-              <h4 className="font-semibold text-amber-900">Government Deductions</h4>
-              <p className="text-sm text-amber-700 mt-1">
+            <div className="p-4 bg-saffron/10 rounded-lg border border-saffron/20">
+              <h4 className="font-semibold text-castleton-green">Government Deductions</h4>
+              <p className="text-sm text-dark-serpent/80 mt-1">
                 SSS, PhilHealth, and Pag-IBIG are applied ONLY for the 16-end of month cutoff period.
               </p>
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="p-4 bg-green-50 rounded-lg">
-              <h4 className="font-semibold text-green-900">Cutoff Periods</h4>
-              <ul className="text-sm text-green-700 mt-1 list-disc list-inside">
+            <div className="p-4 bg-paper rounded-lg border border-castleton-green/10">
+              <h4 className="font-semibold text-castleton-green">Cutoff Periods</h4>
+              <ul className="text-sm text-dark-serpent/80 mt-1 list-disc list-inside">
                 <li>First Half: 1st - 15th of the month</li>
                 <li>Second Half: 16th - end of month (28/29/30/31)</li>
               </ul>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <h4 className="font-semibold text-purple-900">KPI</h4>
-              <p className="text-sm text-purple-700 mt-1">
+            <div className="p-4 bg-saffron/10 rounded-lg border border-saffron/20">
+              <h4 className="font-semibold text-castleton-green">KPI</h4>
+              <p className="text-sm text-dark-serpent/80 mt-1">
                 KPI amounts can be edited per employee per payroll run. Changes are logged for audit purposes.
               </p>
             </div>

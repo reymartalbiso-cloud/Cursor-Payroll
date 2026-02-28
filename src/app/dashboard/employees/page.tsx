@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { LifeScanProfile } from '@/lib/lifescan';
 
 type SortField = 'employeeNo' | 'name' | 'department' | 'position' | 'dailyRate' | 'status';
 type SortOrder = 'asc' | 'desc';
@@ -96,6 +97,7 @@ export default function EmployeesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [sortField, setSortField] = useState<SortField>('employeeNo');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [lifeScanProfiles, setLifeScanProfiles] = useState<LifeScanProfile[]>([]);
   const { toast } = useToast();
 
   const handleSort = (field: SortField) => {
@@ -110,8 +112,8 @@ export default function EmployeesPage() {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
-    return sortOrder === 'asc' 
-      ? <ArrowUp className="h-4 w-4 ml-1" /> 
+    return sortOrder === 'asc'
+      ? <ArrowUp className="h-4 w-4 ml-1" />
       : <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
@@ -150,6 +152,33 @@ export default function EmployeesPage() {
     fetchEmployees();
   }, [fetchEmployees]);
 
+  // Fetch LifeScan profiles when dialog opens
+  useEffect(() => {
+    if (isDialogOpen) {
+      fetch('/api/lifescan/employees')
+        .then(res => res.json())
+        .then(data => {
+          if (data.profiles) setLifeScanProfiles(data.profiles);
+        })
+        .catch(err => console.error('Failed to fetch LifeScan profiles', err));
+    }
+  }, [isDialogOpen]);
+
+  const handleLifeScanSelect = (employeeId: string) => {
+    const profile = lifeScanProfiles.find(p => p.employee_id === employeeId);
+    if (profile) {
+      setEditingEmployee(prev => ({
+        ...prev,
+        employeeNo: profile.employee_id,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        middleName: profile.middle_name || '',
+        department: profile.department || '',
+        position: profile.position || '',
+      }));
+    }
+  };
+
   const handleSave = async () => {
     if (!editingEmployee) return;
 
@@ -164,7 +193,7 @@ export default function EmployeesPage() {
       // Calculate dailyRate from monthlySalary (monthlySalary / 26)
       const monthlySalary = parseFloat(String(editingEmployee.monthlySalary || 0));
       const calculatedDailyRate = monthlySalary / 26;
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -324,7 +353,7 @@ export default function EmployeesPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
             </div>
           ) : (
             <>
@@ -450,6 +479,28 @@ export default function EmployeesPage() {
           </DialogHeader>
           {editingEmployee && (
             <div className="grid gap-4 py-4">
+              {/* LifeScan Selection */}
+              {!editingEmployee.id && (
+                <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                  <Label htmlFor="lifescan-select" className="mb-2 block">Import from LifeScan</Label>
+                  <Select onValueChange={handleLifeScanSelect}>
+                    <SelectTrigger id="lifescan-select">
+                      <SelectValue placeholder="Select an employee from LifeScan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lifeScanProfiles.map((profile) => (
+                        <SelectItem key={profile.employee_id} value={profile.employee_id}>
+                          {profile.last_name}, {profile.first_name} ({profile.employee_id})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Selecting an employee will auto-fill the details below.
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="employeeNo">Employee ID *</Label>
@@ -526,8 +577,8 @@ export default function EmployeesPage() {
                     value={editingEmployee.monthlySalary || ''}
                     onChange={(e) => {
                       const monthly = parseFloat(e.target.value) || 0;
-                      setEditingEmployee({ 
-                        ...editingEmployee, 
+                      setEditingEmployee({
+                        ...editingEmployee,
                         monthlySalary: monthly,
                         dailyRate: monthly / 26  // Auto-calculate daily rate
                       });

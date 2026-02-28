@@ -181,7 +181,7 @@ export default function PayslipsPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
             </div>
           ) : (
             <>
@@ -222,7 +222,7 @@ export default function PayslipsPage() {
                           {formatDate(payslip.payrollRun.cutoffEnd)}
                         </TableCell>
                         <TableCell>{formatDate(payslip.payrollRun.payDate)}</TableCell>
-                        <TableCell className="text-right font-bold text-green-600">
+                        <TableCell className="text-right font-bold text-primary">
                           {formatCurrency(payslip.netPay)}
                         </TableCell>
                         <TableCell>

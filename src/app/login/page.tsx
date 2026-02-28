@@ -53,11 +53,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen flex items-center justify-center bg-sea-salt/50">
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-castleton-green flex items-center justify-center shadow-lg">
               <span className="text-2xl font-bold text-white">P</span>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-castleton-green hover:bg-castleton-green/90" disabled={isLoading}>
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

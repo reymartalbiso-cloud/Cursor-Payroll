@@ -5,7 +5,6 @@ import { parseDecimal, roundTo2Decimals, numberToWords } from './utils';
 export interface PayrollSettings {
   govDeductionMode: 'fixed_per_cutoff' | 'prorated_by_days';
   standardDailyHours: number;
-  overtimeMultiplier: number;
 }
 
 // Holiday data for payroll calculation
@@ -108,7 +107,7 @@ export interface ComputationBreakdown {
  */
 export function getCutoffDates(year: number, month: number, cutoffType: CutoffType): Date[] {
   const dates: Date[] = [];
-  
+
   if (cutoffType === CutoffType.FIRST_HALF) {
     // 1-15 of the month
     for (let day = 1; day <= 15; day++) {
@@ -121,7 +120,7 @@ export function getCutoffDates(year: number, month: number, cutoffType: CutoffTy
       dates.push(new Date(year, month - 1, day));
     }
   }
-  
+
   return dates;
 }
 
@@ -222,7 +221,7 @@ export function calculateAttendanceSummary(
 
   for (const entry of entries) {
     const entryDate = new Date(entry.date);
-    
+
     // Skip Sundays in the calculation
     if (isSunday(entryDate)) continue;
 
@@ -255,12 +254,14 @@ export function calculateAttendanceSummary(
         const hourlyRate = dailyRate / 8;
         specialHolidayPay += regularHours * hourlyRate * HOLIDAY_PAY_RATES.SPECIAL;
         presentDays++;
-        
+
         // Add OT hours from special holiday to total OT (OT is NOT included in 30% holiday pay)
         totalOvertimeHours += otHours;
       }
-      // No late counting for leave/offset/holiday days
-      continue;
+      // Fall through to late/undertime counting if it's a holiday
+      if (entry.leaveType !== 'REGULAR_HOLIDAY' && entry.leaveType !== 'SPECIAL_HOLIDAY') {
+        continue;
+      }
     }
 
     // Regular work day (holidays are now only detected from Excel Status column above)
@@ -272,26 +273,26 @@ export function calculateAttendanceSummary(
     } else {
       presentDays++;
     }
-    
+
     // Use adjusted values if they exist, otherwise use calculated values
     const effectiveLateMinutes = entry.adjustedLateMinutes !== null && entry.adjustedLateMinutes !== undefined
       ? entry.adjustedLateMinutes
       : (entry.minutesLate || 0);
-    
+
     const effectiveUndertimeMinutes = entry.adjustedUndertimeMinutes !== null && entry.adjustedUndertimeMinutes !== undefined
       ? entry.adjustedUndertimeMinutes
       : (entry.undertimeMinutes || 0);
-    
+
     const effectiveOvertimeHours = entry.adjustedOvertimeHours !== null && entry.adjustedOvertimeHours !== undefined
       ? parseDecimal(entry.adjustedOvertimeHours)
       : parseDecimal(entry.overtimeHours);
-    
+
     // Count late occurrences (any day with late minutes > 0)
     // Only count towards KPI voiding if NOT excused
     if (effectiveLateMinutes > 0 && !entry.isLateExcused) {
       lateCount++;
     }
-    
+
     totalLateMinutes += effectiveLateMinutes;
     totalUndertimeMinutes += effectiveUndertimeMinutes;
     totalOvertimeHours += effectiveOvertimeHours;
@@ -340,14 +341,14 @@ export function shouldVoidKpi(monthlyAttendance: MonthlyAttendance): { voided: b
       reason: `Late ${monthlyAttendance.lateCount} times this month (max ${KPI_VOID_RULES.maxLateOccurrences} allowed)`,
     };
   }
-  
+
   if (monthlyAttendance.absentCount > KPI_VOID_RULES.maxAbsentOccurrences) {
     return {
       voided: true,
       reason: `Absent ${monthlyAttendance.absentCount} times this month (max ${KPI_VOID_RULES.maxAbsentOccurrences} allowed)`,
     };
   }
-  
+
   return { voided: false, reason: null };
 }
 
@@ -361,7 +362,7 @@ export function calculateMonthlyAttendance(
 ): MonthlyAttendance {
   const lateCount = currentCutoffAttendance.lateCount + (otherCutoffAttendance?.lateCount || 0);
   const absentCount = currentCutoffAttendance.absentCount + (otherCutoffAttendance?.absentCount || 0);
-  
+
   return { lateCount, absentCount };
 }
 
@@ -382,20 +383,20 @@ export function calculateEarnings(
   const monthlySalary = parseDecimal(employee.monthlySalary);
   const preciseDailyRate = monthlySalary / 26;
   const hourlyRate = preciseDailyRate / settings.standardDailyHours;
-  
+
   // Basic pay based on eligible workdays MINUS regular holidays
   // Regular holidays are paid separately in holidayPay (100% rate)
   // This prevents double counting regular holidays
   // Keep full precision - don't round yet
   const regularWorkdays = attendance.eligibleWorkdays - attendance.regularHolidayCount;
   const basicPayRaw = preciseDailyRate * regularWorkdays;
-  
-  // Overtime pay (straight hourly rate, no multiplier) - keep full precision
+
+  // Overtime pay (flat hourly rate, no multiplier) - keep full precision
   const overtimePayRaw = attendance.totalOvertimeHours * hourlyRate;
-  
+
   // Holiday pay (from timesheet) - keep full precision
   const holidayPayRaw = attendance.totalHolidayPay;
-  
+
   // Calculate gross pay with full precision, then round once at the end
   const grossPayRaw = basicPayRaw + overtimePayRaw + holidayPayRaw + cola + kpi + otherEarnings;
   const grossPay = roundTo2Decimals(grossPayRaw);
@@ -428,27 +429,27 @@ export function calculateDeductions(
   const monthlySalary = parseDecimal(employee.monthlySalary);
   const preciseDailyRate = monthlySalary / 26;
   const minuteRate = preciseDailyRate / (settings.standardDailyHours * 60);
-  
+
   // Keep full precision for intermediate calculations
   // Absence deduction (only for Mon-Sat absences)
-  const absenceDeductionRaw = overrides.absenceDeduction ?? 
+  const absenceDeductionRaw = overrides.absenceDeduction ??
     (preciseDailyRate * attendance.absentDays);
-  
+
   // Late deduction
-  const lateDeductionRaw = overrides.lateDeduction ?? 
+  const lateDeductionRaw = overrides.lateDeduction ??
     (minuteRate * attendance.totalLateMinutes);
-  
+
   // Undertime deduction
-  const undertimeDeductionRaw = overrides.undertimeDeduction ?? 
+  const undertimeDeductionRaw = overrides.undertimeDeduction ??
     (minuteRate * attendance.totalUndertimeMinutes);
-  
+
   // Government deductions - ONLY for second half cutoff (16-end)
   const applyGovDeductions = cutoffType === CutoffType.SECOND_HALF;
-  
+
   let sssDeductionRaw = 0;
   let philhealthDeductionRaw = 0;
   let pagibigDeductionRaw = 0;
-  
+
   if (applyGovDeductions) {
     if (settings.govDeductionMode === 'prorated_by_days' && attendance.eligibleWorkdays > 0) {
       const prorationFactor = attendance.presentDays / attendance.eligibleWorkdays;
@@ -462,18 +463,18 @@ export function calculateDeductions(
       pagibigDeductionRaw = parseDecimal(employee.pagibigContribution);
     }
   }
-  
+
   // Loans and advances
   const sssLoanDeductionRaw = overrides.sssLoanDeduction ?? parseDecimal(employee.sssLoan);
   const pagibigLoanDeductionRaw = overrides.pagibigLoanDeduction ?? parseDecimal(employee.pagibigLoan);
   const otherLoanDeductionRaw = overrides.otherLoanDeduction ?? parseDecimal(employee.otherLoans);
   const cashAdvanceDeductionRaw = overrides.cashAdvanceDeduction ?? parseDecimal(employee.cashAdvance);
-  
+
   const thirteenthMonthAdjRaw = overrides.thirteenthMonthAdj ?? 0;
   const otherDeductionsRaw = overrides.otherDeductions ?? 0;
-  
+
   // Sum all deductions with full precision, then round once at the end
-  const totalDeductionsRaw = 
+  const totalDeductionsRaw =
     absenceDeductionRaw +
     lateDeductionRaw +
     undertimeDeductionRaw +
@@ -486,7 +487,7 @@ export function calculateDeductions(
     cashAdvanceDeductionRaw +
     thirteenthMonthAdjRaw +
     otherDeductionsRaw;
-  
+
   const totalDeductions = roundTo2Decimals(totalDeductionsRaw);
 
   // Round individual components for display purposes only
@@ -541,7 +542,7 @@ export function generateComputationBreakdown(
   // Holiday and leave note
   let holidayNote = '';
   const parts: string[] = [];
-  
+
   if (attendance.regularHolidayCount > 0) {
     parts.push(`Regular Holidays: ${attendance.regularHolidayCount} (100% pay = ${attendance.regularHolidayPay.toFixed(2)})`);
   }
@@ -557,7 +558,7 @@ export function generateComputationBreakdown(
   if (attendance.offsetCount > 0) {
     parts.push(`Offset: ${attendance.offsetCount} day(s) (paid)`);
   }
-  
+
   if (parts.length > 0) {
     holidayNote = parts.join(' | ');
   } else {
@@ -604,18 +605,18 @@ export function calculatePayslip(
   // Use monthlySalary / 26 for precise calculations to avoid rounding errors
   const monthlySalary = parseDecimal(employee.monthlySalary);
   const preciseDailyRate = monthlySalary / 26;
-  
+
   // Holidays are now detected ONLY from Excel Status column (REGULAR_HOLIDAY or SPECIAL_HOLIDAY)
   // The holidays parameter is kept for backward compatibility but not used
   const attendance = calculateAttendanceSummary(entries, eligibleWorkdays, [], preciseDailyRate);
-  
+
   // Calculate MONTHLY attendance (combine both cutoffs for KPI voiding)
   const monthlyAttendance = calculateMonthlyAttendance(attendance, otherCutoffAttendance);
-  
+
   // Check if KPI should be voided based on MONTHLY totals (late > 3 OR absent > 2 for the whole month)
   const kpiVoidCheck = shouldVoidKpi(monthlyAttendance);
   const effectiveKpi = kpiVoidCheck.voided ? 0 : kpi;
-  
+
   const earnings = calculateEarnings(
     employee,
     attendance,
@@ -624,7 +625,7 @@ export function calculatePayslip(
     overrides.cola ?? 0,
     overrides.otherEarnings ?? 0
   );
-  
+
   const deductions = calculateDeductions(
     employee,
     attendance,
@@ -632,9 +633,9 @@ export function calculatePayslip(
     settings,
     overrides.deductionOverrides
   );
-  
+
   const netPay = roundTo2Decimals(earnings.grossPay - deductions.totalDeductions);
-  
+
   const computationBreakdown = generateComputationBreakdown(
     employee,
     attendance,
@@ -672,7 +673,7 @@ export function recalculateWithNewKpi(
   // Check if KPI should be voided based on MONTHLY attendance
   const kpiVoidCheck = shouldVoidKpi(currentCalculation.monthlyAttendance);
   const effectiveKpi = kpiVoidCheck.voided ? 0 : newKpi;
-  
+
   const kpiDiff = effectiveKpi - currentCalculation.earnings.kpi;
   const newGrossPay = roundTo2Decimals(currentCalculation.earnings.grossPay + kpiDiff);
   const newNetPay = roundTo2Decimals(newGrossPay - currentCalculation.deductions.totalDeductions);

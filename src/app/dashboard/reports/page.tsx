@@ -175,7 +175,7 @@ export default function ReportsPage() {
       {/* Report Content */}
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
         </div>
       ) : reportData ? (
         <>
@@ -214,7 +214,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-sm font-medium">Total Net Pay</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-primary">
                   {formatCurrency(reportData.summary.totalNetPay)}
                 </p>
               </CardContent>
@@ -248,7 +248,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-sm font-medium">Total Overtime (hours)</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-2xl font-bold text-castleton-green">
                   {reportData.summary.totalOvertimeHours.toFixed(2)}
                 </p>
               </CardContent>
@@ -300,7 +300,7 @@ export default function ReportsPage() {
                         <TableCell className="text-right text-red-600">
                           {formatCurrency(ps.totalDeductions)}
                         </TableCell>
-                        <TableCell className="text-right font-bold text-green-600">
+                        <TableCell className="text-right font-bold text-primary">
                           {formatCurrency(ps.netPay)}
                         </TableCell>
                         <TableCell>
