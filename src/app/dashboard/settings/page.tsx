@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Save } from 'lucide-react';
+import { Save, Send, Wifi, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Settings {
@@ -39,6 +40,17 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // LifeScan
+  const [lifescanStatus, setLifescanStatus] = useState<{
+    configured: boolean;
+    connected: boolean | null;
+    message: string;
+  } | null>(null);
+  const [lifescanTesting, setLifescanTesting] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastSending, setBroadcastSending] = useState(false);
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -55,6 +67,56 @@ export default function SettingsPage() {
     };
     fetchSettings();
   }, []);
+
+  const fetchLifescanStatus = async (test = false) => {
+    try {
+      const res = await fetch(`/api/lifescan/status${test ? '?test=true' : ''}`);
+      const data = await res.json();
+      setLifescanStatus(data);
+    } catch {
+      setLifescanStatus({ configured: false, connected: false, message: 'Failed to fetch status' });
+    }
+  };
+
+  useEffect(() => {
+    fetchLifescanStatus();
+  }, []);
+
+  const handleTestLifescan = async () => {
+    setLifescanTesting(true);
+    try {
+      await fetchLifescanStatus(true);
+    } finally {
+      setLifescanTesting(false);
+    }
+  };
+
+  const handleSendBroadcast = async () => {
+    if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+      toast({ title: 'Error', description: 'Title and message are required', variant: 'destructive' });
+      return;
+    }
+    setBroadcastSending(true);
+    try {
+      const res = await fetch('/api/lifescan/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: broadcastTitle.trim(), message: broadcastMessage.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: 'Success', description: 'Broadcast sent to all LifeScan app users' });
+        setBroadcastTitle('');
+        setBroadcastMessage('');
+      } else {
+        throw new Error(data.error || 'Failed to send');
+      }
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to send broadcast', variant: 'destructive' });
+    } finally {
+      setBroadcastSending(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -199,6 +261,64 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground">
                 Used for calculating hourly rate and late deductions
               </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* LifeScan Integration */}
+      <Card>
+        <CardHeader>
+          <CardTitle>LifeScan Integration</CardTitle>
+          <CardDescription>
+            Connect to LifeScan app for DTR import and push notifications. Configure LIFESCAN_API_URL and LIFESCAN_API_KEY in .env
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium">Connection Status</p>
+              <p className="text-sm text-muted-foreground">
+                {lifescanStatus?.configured
+                  ? lifescanStatus.connected === true
+                    ? 'Connected'
+                    : lifescanStatus.connected === false
+                      ? 'Connection failed'
+                      : 'Configured — test to verify'
+                  : 'Not configured'}
+              </p>
+              {lifescanStatus?.message && (
+                <p className="text-xs text-muted-foreground mt-1">{lifescanStatus.message}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {lifescanStatus?.configured && (
+                <Button variant="outline" size="sm" onClick={handleTestLifescan} disabled={lifescanTesting}>
+                  {lifescanTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
+                  {lifescanTesting ? 'Testing...' : 'Test Connection'}
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="border-t pt-4 space-y-3">
+            <h4 className="font-medium">Send Announcement (Broadcast)</h4>
+            <p className="text-sm text-muted-foreground">Send a message to all users in the LifeScan app with push notification.</p>
+            <div className="space-y-2">
+              <Input
+                placeholder="Title (e.g., Monthly Meeting)"
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value)}
+              />
+              <Textarea
+                placeholder="Message"
+                value={broadcastMessage}
+                onChange={(e) => setBroadcastMessage(e.target.value)}
+                rows={3}
+              />
+              <Button onClick={handleSendBroadcast} disabled={broadcastSending || !lifescanStatus?.configured}>
+                {broadcastSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                {broadcastSending ? 'Sending...' : 'Send Broadcast'}
+              </Button>
             </div>
           </div>
         </CardContent>

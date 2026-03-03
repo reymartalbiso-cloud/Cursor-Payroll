@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { FileSpreadsheet } from 'lucide-react';
 import {
   ArrowLeft,
   FileText,
@@ -220,6 +221,32 @@ export default function PayrollRunDetailPage() {
     }
   };
 
+  const handleExportPayslipsExcel = async () => {
+    try {
+      const res = await fetch(`/api/payslips/export?payrollRunId=${id}`);
+
+      if (!res.ok) throw new Error('Export failed');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Payslips-${payrollRun?.name || 'export'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      toast({ title: 'Success', description: 'Payslips Excel exported' });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to export payslips Excel',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleGeneratePayslips = async () => {
     setIsGenerating(true);
     try {
@@ -407,6 +434,10 @@ export default function PayrollRunDetailPage() {
         <Button variant="outline" onClick={handleExportAll}>
           <Download className="h-4 w-4 mr-2" />
           Export All PDFs
+        </Button>
+        <Button variant="outline" onClick={handleExportPayslipsExcel}>
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Export Payslips Excel
         </Button>
       </div>
 

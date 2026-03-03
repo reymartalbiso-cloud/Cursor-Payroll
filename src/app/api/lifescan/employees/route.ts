@@ -1,39 +1,36 @@
-
 import { NextResponse } from 'next/server';
-import { fetchLifeScanData, LifeScanProfile } from '@/lib/lifescan';
+import { getSession, canManagePayroll } from '@/lib/auth';
+import { fetchLifeScanProfiles } from '@/lib/lifescan';
+import { accountingService } from '@/services/accountingService';
 
-export const dynamic = 'force-dynamic'; // Ensure this is not cached statically
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const data = await fetchLifeScanData();
+        const session = await getSession();
+        if (!session || !canManagePayroll(session.role)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-        // Extract unique profiles
-        const uniqueProfilesMap = new Map<string, LifeScanProfile>();
+        if (!accountingService.isConfigured()) {
+            return NextResponse.json({
+                profiles: [],
+                configured: false,
+                message: 'LifeScan API not configured. Set LIFESCAN_API_URL and LIFESCAN_API_KEY in .env',
+            });
+        }
 
-        data.forEach(record => {
-            if (record.profiles && record.profiles.employee_id) {
-                // Use employee_id as key to ensure uniqueness
-                if (!uniqueProfilesMap.has(record.profiles.employee_id)) {
-                    uniqueProfilesMap.set(record.profiles.employee_id, record.profiles);
-                }
-            }
+        const profiles = await fetchLifeScanProfiles();
+        return NextResponse.json({
+            profiles,
+            configured: true,
+            count: profiles.length,
         });
-
-        const profiles = Array.from(uniqueProfilesMap.values());
-
-        // Sort by name for easier selection
-        profiles.sort((a, b) => {
-            const nameA = `${a.last_name}, ${a.first_name}`;
-            const nameB = `${b.last_name}, ${b.first_name}`;
-            return nameA.localeCompare(nameB);
-        });
-
-        return NextResponse.json({ profiles });
     } catch (error) {
-        console.error('API Error:', error);
+        console.error('LifeScan employees API error:', error);
+        const message = error instanceof Error ? error.message : 'Failed to fetch LifeScan employees';
         return NextResponse.json(
-            { error: 'Failed to fetch LifeScan employees' },
+            { error: message, profiles: [], configured: true },
             { status: 500 }
         );
     }

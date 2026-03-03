@@ -153,16 +153,37 @@ export default function EmployeesPage() {
   }, [fetchEmployees]);
 
   // Fetch LifeScan profiles when dialog opens
+  const [lifeScanLoading, setLifeScanLoading] = useState(false);
+  const [lifeScanError, setLifeScanError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (isDialogOpen) {
+    if (isDialogOpen && !editingEmployee?.id) {
+      setLifeScanLoading(true);
+      setLifeScanError(null);
       fetch('/api/lifescan/employees')
-        .then(res => res.json())
-        .then(data => {
-          if (data.profiles) setLifeScanProfiles(data.profiles);
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to load LifeScan');
+          }
+          setLifeScanProfiles(data.profiles || []);
+          if (!data.configured) {
+            setLifeScanError('LifeScan not configured. Add LIFESCAN_API_URL and LIFESCAN_API_KEY to .env');
+          } else if ((data.profiles || []).length === 0) {
+            setLifeScanError('No employees found. Ensure LifeScan has users with employee_id and DTR records.');
+          }
         })
-        .catch(err => console.error('Failed to fetch LifeScan profiles', err));
+        .catch((err) => {
+          console.error('Failed to fetch LifeScan profiles', err);
+          setLifeScanError(err instanceof Error ? err.message : 'Failed to load LifeScan');
+          setLifeScanProfiles([]);
+        })
+        .finally(() => setLifeScanLoading(false));
+    } else {
+      setLifeScanProfiles([]);
+      setLifeScanError(null);
     }
-  }, [isDialogOpen]);
+  }, [isDialogOpen, editingEmployee?.id]);
 
   const handleLifeScanSelect = (employeeId: string) => {
     const profile = lifeScanProfiles.find(p => p.employee_id === employeeId);
@@ -483,21 +504,38 @@ export default function EmployeesPage() {
               {!editingEmployee.id && (
                 <div className="bg-muted/50 p-4 rounded-lg mb-4">
                   <Label htmlFor="lifescan-select" className="mb-2 block">Import from LifeScan</Label>
-                  <Select onValueChange={handleLifeScanSelect}>
-                    <SelectTrigger id="lifescan-select">
-                      <SelectValue placeholder="Select an employee from LifeScan..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {lifeScanProfiles.map((profile) => (
-                        <SelectItem key={profile.employee_id} value={profile.employee_id}>
-                          {profile.last_name}, {profile.first_name} ({profile.employee_id})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Selecting an employee will auto-fill the details below.
-                  </p>
+                  {lifeScanLoading ? (
+                    <p className="text-sm text-muted-foreground py-2">Loading employees from LifeScan...</p>
+                  ) : (
+                    <>
+                      <Select onValueChange={handleLifeScanSelect} disabled={lifeScanProfiles.length === 0}>
+                        <SelectTrigger id="lifescan-select">
+                          <SelectValue
+                            placeholder={
+                              lifeScanProfiles.length === 0
+                                ? 'No employees available'
+                                : 'Select an employee from LifeScan...'
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lifeScanProfiles.map((profile) => (
+                            <SelectItem key={profile.employee_id} value={profile.employee_id}>
+                              {profile.last_name}, {profile.first_name} ({profile.employee_id})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {lifeScanError && (
+                        <p className="text-xs text-amber-600 mt-2">{lifeScanError}</p>
+                      )}
+                      {!lifeScanError && lifeScanProfiles.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Selecting an employee will auto-fill the details below.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

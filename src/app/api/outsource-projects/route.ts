@@ -1,0 +1,58 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getSession, canManagePayroll } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  try {
+    const session = await getSession();
+    if (!session || !canManagePayroll(session.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const projects = await prisma.outsourceProject.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { payrollRequests: true } },
+      },
+    });
+
+    return NextResponse.json({ projects });
+  } catch (error) {
+    console.error('Outsource projects GET error:', error);
+    return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || !canManagePayroll(session.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { name, rate, paymentBasis, description } = body;
+
+    if (!name || rate === undefined || rate === null) {
+      return NextResponse.json(
+        { error: 'Project name and rate are required' },
+        { status: 400 }
+      );
+    }
+
+    const project = await prisma.outsourceProject.create({
+      data: {
+        name,
+        rate: parseFloat(rate),
+        paymentBasis: paymentBasis || 'EFFECTIVE_HOUR',
+        description: description || null,
+      },
+    });
+
+    return NextResponse.json({ project });
+  } catch (error) {
+    console.error('Outsource project create error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to create project';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

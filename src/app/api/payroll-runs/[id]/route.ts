@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
+import { accountingService } from '@/services/accountingService';
+import { formatDate } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
@@ -98,6 +100,90 @@ export async function PUT(
           description: `Finalized payroll run: ${payrollRun.name}`,
         },
       });
+
+      // Send LifeScan payslip notifications to employees
+      if (accountingService.isConfigured()) {
+        try {
+          const payslips = await prisma.payslip.findMany({
+            where: { payrollRunId: id, isMissing: false },
+            include: { employee: { select: { employeeNo: true } } },
+          });
+
+          if (payslips.length > 0) {
+            const users = await accountingService.fetchUsersWithDTR({});
+            const employeeIdToUserId = new Map<string, string>();
+            users.forEach((u) => {
+              if (u.employee_id) {
+                employeeIdToUserId.set(u.employee_id.toLowerCase().trim(), u.id);
+              }
+            });
+
+            const periodLabel = `${formatDate(payrollRun.cutoffStart, 'short')} - ${formatDate(payrollRun.cutoffEnd, 'short')}`;
+
+            // Send individual payslip notifications (type: 'payslip') with full JSON data
+            const notifyPromises: Promise<unknown>[] = [];
+            for (const ps of payslips) {
+              const userId = employeeIdToUserId.get(ps.employee.employeeNo.toLowerCase().trim());
+              if (userId) {
+                const payslipData = {
+                  // Employee Info
+                  employeeName: ps.employeeName,
+                  employeeNo: ps.employeeNo,
+                  department: ps.department,
+                  position: ps.position,
+                  referenceNo: ps.referenceNo,
+                  payPeriod: periodLabel,
+                  payDate: formatDate(payrollRun.payDate, 'short'),
+                  dailyRate: Number(ps.dailyRate),
+                  // Attendance Summary
+                  eligibleWorkdays: ps.eligibleWorkdays,
+                  presentDays: ps.presentDays,
+                  absentDays: ps.absentDays,
+                  totalLateMinutes: ps.totalLateMinutes,
+                  // Earnings
+                  basicPay: Number(ps.basicPay),
+                  holidayPay: Number(ps.holidayPay),
+                  overtimePay: Number(ps.overtimePay),
+                  cola: Number(ps.cola),
+                  kpi: Number(ps.kpi),
+                  otherEarnings: Number(ps.otherEarnings),
+                  grossPay: Number(ps.grossPay),
+                  // Deductions
+                  absenceDeduction: Number(ps.absenceDeduction),
+                  lateDeduction: Number(ps.lateDeduction),
+                  undertimeDeduction: Number(ps.undertimeDeduction),
+                  sssDeduction: Number(ps.sssDeduction),
+                  philhealthDeduction: Number(ps.philhealthDeduction),
+                  pagibigDeduction: Number(ps.pagibigDeduction),
+                  pagibigLoanDeduction: Number(ps.pagibigLoanDeduction),
+                  sssLoanDeduction: Number(ps.sssLoanDeduction),
+                  cashAdvanceDeduction: Number(ps.cashAdvanceDeduction),
+                  otherDeductions: Number(ps.otherDeductions),
+                  totalDeductions: Number(ps.totalDeductions),
+                  // Net Pay
+                  netPay: Number(ps.netPay),
+                  netPayInWords: ps.netPayInWords || '',
+                };
+
+                notifyPromises.push(
+                  accountingService.sendPayslipNotification(
+                    userId,
+                    'Payslip Released',
+                    JSON.stringify(payslipData)
+                  )
+                );
+              }
+            }
+
+            if (notifyPromises.length > 0) {
+              await Promise.allSettled(notifyPromises);
+              console.log(`Sent ${notifyPromises.length} payslip notifications for payroll run ${id}`);
+            }
+          }
+        } catch (notifyError) {
+          console.error('LifeScan notify on finalize:', notifyError);
+        }
+      }
     }
 
     return NextResponse.json(updated);

@@ -16,6 +16,7 @@ import {
   ClipboardList,
   ClipboardCheck,
   UserCircle,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/dashboard/import', label: 'Import Timesheet', icon: FileSpreadsheet, roles: ['ADMIN', 'PAYROLL_ADMIN'] },
   { href: '/dashboard/timesheet-review', label: 'Timesheet Review', icon: ClipboardCheck, roles: ['ADMIN', 'PAYROLL_ADMIN'] },
   { href: '/dashboard/payroll-runs', label: 'Payroll Runs', icon: Calendar, roles: ['ADMIN', 'PAYROLL_ADMIN'] },
+  { href: '/dashboard/outsource-payroll', label: 'Outsource Payroll', icon: Calculator, roles: ['ADMIN', 'PAYROLL_ADMIN'] },
   { href: '/dashboard/payslips', label: 'Payslips', icon: FileText, roles: ['ADMIN', 'PAYROLL_ADMIN'] },
   { href: '/dashboard/reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'PAYROLL_ADMIN'] },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings, roles: ['ADMIN'] },
@@ -130,7 +132,7 @@ export function Sidebar() {
           </Button>
           {!collapsed && (
             <div className="mt-4 text-center">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest font-medium">
+              <p className="text-[15px] text-saffron uppercase tracking-widest font-medium">
                 Powered by: Lifewood ph
               </p>
             </div>

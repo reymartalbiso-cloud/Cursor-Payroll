@@ -346,6 +346,53 @@ model Setting {
   @@map("settings")
 }
 
+// ==================== OUTSOURCE OPERATOR PAYROLL (Independent) ====================
+// Output-based payment for operators/outsource employees - NOT linked to internal Employee
+
+model OutsourceProject {
+  id              String    @id @default(cuid())
+  name            String    // Project name
+  rate            Decimal   @db.Decimal(12, 2)  // Rate per unit (e.g., 600 pesos per effective hour)
+  paymentBasis    String    @default("EFFECTIVE_HOUR")  // e.g. Per Effective Hour, Per Unit, or custom
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  payrollRequests OutsourcePayrollRequest[]
+
+  @@map("outsource_projects")
+}
+
+model OutsourcePayrollRequest {
+  id              String    @id @default(cuid())
+  projectId       String
+  project         OutsourceProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requestName     String    // e.g., "January 2025 - Project A"
+  periodStart     DateTime? @db.Date  // Optional period
+  periodEnd       DateTime? @db.Date
+  totalAmount     Decimal   @default(0) @db.Decimal(12, 2)
+  status          String    @default("DRAFT")  // DRAFT, FINALIZED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  entries         OutsourceOperatorEntry[]
+
+  @@map("outsource_payroll_requests")
+}
+
+model OutsourceOperatorEntry {
+  id              String    @id @default(cuid())
+  requestId       String
+  request         OutsourcePayrollRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  operatorName    String    // From Excel - not linked to Employee
+  output          Decimal   @db.Decimal(12, 4)  // e.g., effective hours, units
+  calculatedPay   Decimal   @db.Decimal(12, 2)
+  remarks         String?
+  createdAt       DateTime  @default(now())
+
+  @@map("outsource_operator_entries")
+}
+
 // ==================== HOLIDAYS ====================
 
 enum HolidayType {

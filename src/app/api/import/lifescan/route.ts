@@ -189,20 +189,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Cannot import to a finalized payroll run' }, { status: 400 });
         }
 
-        // 1. Fetch from LifeScan
-        const lifeScanRecords = await fetchLifeScanData();
-
-        // 2. Filter records for the cutoff period
+        // 1. Fetch from LifeScan Accounting API (with date filter)
         const cutoffStart = new Date(payrollRun.cutoffStart);
         const cutoffEnd = new Date(payrollRun.cutoffEnd);
+        const startStr = cutoffStart.toISOString().split('T')[0];
+        const endStr = cutoffEnd.toISOString().split('T')[0];
 
-        const relevantRecords = lifeScanRecords.filter(r => {
-            const d = new Date(r.created_at);
-            // Compare dates (ignoring time)
-            const dStr = d.toISOString().split('T')[0];
-            const startStr = cutoffStart.toISOString().split('T')[0];
-            const endStr = cutoffEnd.toISOString().split('T')[0];
-            return dStr >= startStr && dStr <= endStr;
+        const relevantRecords = await fetchLifeScanData({
+            start_date: startStr,
+            end_date: endStr,
         });
 
         // 3. Process records
@@ -279,18 +274,15 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'Cannot import to finalized run' }, { status: 400 });
         }
 
-        // 1. Fetch from LifeScan
-        const lifeScanRecords = await fetchLifeScanData();
-
+        // 1. Fetch from LifeScan Accounting API (with date filter)
         const cutoffStart = new Date(payrollRun.cutoffStart);
         const cutoffEnd = new Date(payrollRun.cutoffEnd);
+        const startStr = cutoffStart.toISOString().split('T')[0];
+        const endStr = cutoffEnd.toISOString().split('T')[0];
 
-        const relevantRecords = lifeScanRecords.filter(r => {
-            const d = new Date(r.created_at);
-            const dStr = d.toISOString().split('T')[0];
-            const startStr = cutoffStart.toISOString().split('T')[0];
-            const endStr = cutoffEnd.toISOString().split('T')[0];
-            return dStr >= startStr && dStr <= endStr;
+        const relevantRecords = await fetchLifeScanData({
+            start_date: startStr,
+            end_date: endStr,
         });
 
         const processedRows = relevantRecords.map(r => processLifeScanRecord(r, null)).filter(r => r !== null);
