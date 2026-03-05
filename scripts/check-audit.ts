@@ -5,12 +5,12 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('--- Checking Audit Logs ---');
     const logs = await prisma.auditLog.findMany({
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 10
     });
 
     logs.forEach(l => {
-        console.log(`[${l.timestamp.toISOString()}] ${l.action} on ${l.entityType} (${l.entityId}) by ${l.performedBy}`);
+        console.log(`[${l.createdAt.toISOString()}] ${l.action} on ${l.entityType} (${l.entityId}) by ${l.userId}`);
     });
 }
 
