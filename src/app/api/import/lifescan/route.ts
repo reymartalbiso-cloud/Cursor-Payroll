@@ -422,7 +422,7 @@ export async function PUT(request: NextRequest) {
                     netPay: calculation.netPay,
                     netPayInWords: calculation.netPayInWords,
                     govDeductionsApplied: calculation.govDeductionsApplied,
-                    computationBreakdown: calculation.computationBreakdown,
+                    computationBreakdown: calculation.computationBreakdown as any,
                     isMissing: false,
                 },
                 update: {
@@ -454,7 +454,7 @@ export async function PUT(request: NextRequest) {
                     netPay: calculation.netPay,
                     netPayInWords: calculation.netPayInWords,
                     govDeductionsApplied: calculation.govDeductionsApplied,
-                    computationBreakdown: calculation.computationBreakdown,
+                    computationBreakdown: calculation.computationBreakdown as any,
                     isMissing: false,
                 }
             });
