@@ -1,31 +1,31 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // 1. Immediate build-time rescue
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    // 2. Dynamic imports for isolation
+    const { getSession } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+
+    // 3. Force dynamic context
+    await cookies();
+
     const session = await getSession();
 
     if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ user: null });
     }
 
-    return NextResponse.json({
-      user: {
-        id: session.userId,
-        email: session.email,
-        name: session.name,
-        role: session.role,
-        employeeId: session.employeeId,
-      },
-    });
+    return NextResponse.json({ user: session });
   } catch (error) {
-    console.error('Auth check error:', error);
+    console.error('Auth me error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

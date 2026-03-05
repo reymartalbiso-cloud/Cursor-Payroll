@@ -2,12 +2,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, canManagePayroll } from '@/lib/auth';
 import { z } from 'zod';
-
-import { getEligibleWorkdays, getCutoffPeriod } from '@/lib/payroll-calculator';
-import { CutoffType } from '@prisma/client';
 
 const createPayrollRunSchema = z.object({
   year: z.number().min(2020).max(2100),
@@ -18,7 +13,20 @@ const createPayrollRunSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  // 1. Immediate build-time rescue
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    // 2. Dynamic imports for isolation
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canManagePayroll } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+
+    // 3. Force dynamic context
+    await cookies();
+
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -69,7 +77,21 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // 1. Immediate build-time rescue
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    // 2. Dynamic imports for isolation
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canManagePayroll } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+    const { getEligibleWorkdays, getCutoffPeriod } = await import('@/lib/payroll-calculator');
+
+    // 3. Force dynamic context
+    await cookies();
+
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -79,12 +101,11 @@ export async function POST(request: NextRequest) {
     const validatedData = createPayrollRunSchema.parse(body);
 
     const { year, month, cutoffType, payDate, notes } = validatedData;
-    const cutoffEnum = cutoffType as CutoffType;
 
     // Check if payroll run already exists
     const existing = await prisma.payrollRun.findUnique({
       where: {
-        year_month_cutoffType: { year, month, cutoffType: cutoffEnum },
+        year_month_cutoffType: { year, month, cutoffType: cutoffType as any },
       },
     });
 
@@ -96,8 +117,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate cutoff period and eligible workdays
-    const { start, end } = getCutoffPeriod(year, month, cutoffEnum);
-    const eligibleWorkdays = getEligibleWorkdays(year, month, cutoffEnum);
+    const { start, end } = getCutoffPeriod(year, month, cutoffType as any);
+    const eligibleWorkdays = getEligibleWorkdays(year, month, cutoffType as any);
 
     // Get settings
     const settings = await prisma.setting.findMany();
@@ -117,7 +138,7 @@ export async function POST(request: NextRequest) {
     const payrollRun = await prisma.payrollRun.create({
       data: {
         name,
-        cutoffType: cutoffEnum,
+        cutoffType: cutoffType as any,
         cutoffStart: start,
         cutoffEnd: end,
         payDate: new Date(payDate),
@@ -129,9 +150,6 @@ export async function POST(request: NextRequest) {
         standardDailyHours: payrollSettings.standardDailyHours,
       },
     });
-
-    // Payslips will be created when timesheet is imported
-    // No auto-creation of payslips here
 
     return NextResponse.json(payrollRun, { status: 201 });
   } catch (error) {

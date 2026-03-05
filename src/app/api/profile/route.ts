@@ -1,36 +1,44 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
 
-// Get current user's profile
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // 1. Immediate build-time rescue
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    // 2. Dynamic imports for isolation
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+
+    // 3. Force dynamic context
+    await cookies();
+
     const session = await getSession();
-    if (!session) {
+
+    if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
+    const profile = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-      },
+      include: { employee: true },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json(profile);
   } catch (error) {
-    console.error('Get profile error:', error);
-    return NextResponse.json({ error: 'Failed to get profile' }, { status: 500 });
+    console.error('Profile error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
-
