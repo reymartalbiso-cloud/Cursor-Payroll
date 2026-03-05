@@ -9,7 +9,6 @@ import {
   type LifeScanProfile as AccountingLifeScanProfile,
 } from '../services/accountingService';
 
-export type { LifeScanProfile } from '../services/accountingService';
 
 export interface LifeScanAttendanceRecord {
   id: string;
