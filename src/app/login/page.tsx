@@ -8,6 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/auth-store';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -53,27 +56,44 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-sea-salt/50">
-      <Card className="w-full max-w-md mx-4">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 rounded-xl bg-castleton-green flex items-center justify-center shadow-lg">
-              <span className="text-2xl font-bold text-white">P</span>
+    <div className="min-h-screen flex flex-col items-center justify-center transition-colors duration-300">
+
+      <div className="absolute top-4 right-4">
+        <ThemeToggle collapsed={true} />
+      </div>
+
+      <Card className="w-full max-w-md mx-4 shadow-2xl border-none bg-white/80 dark:bg-white/5 backdrop-blur-md overflow-hidden">
+        <CardHeader className="space-y-6 pb-6 pt-10 px-8">
+          <div className="flex justify-center mb-2 transition-all duration-500 hover:scale-[1.05]">
+            <div className="relative w-64 h-20 md:w-72 md:h-24">
+              <Image
+                src="/lifewood-logo.png"
+                alt="Lifewood Logo"
+                fill
+                style={{ objectFit: 'contain' }}
+                priority
+              />
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">Payroll System</CardTitle>
-          <CardDescription className="text-center">
-            Enter your credentials to access the system
-          </CardDescription>
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-bold text-center tracking-tight text-dark-serpent dark:text-saffron">
+              Payroll Management System
+            </CardTitle>
+            <CardDescription className="text-center text-muted-foreground/80 font-medium">
+              Authorized Personnel Access Only
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+
+        <CardContent className="pb-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@company.com"
+                placeholder="name@lifewood.com"
+                className="h-12 border-slate-200 dark:border-white/10 dark:bg-white/5 focus-visible:ring-castleton-green rounded-xl transition-all"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -81,35 +101,41 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="••••••••"
+                className="h-12 border-slate-200 dark:border-white/10 dark:bg-white/5 focus-visible:ring-castleton-green rounded-xl transition-all"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full bg-castleton-green hover:bg-castleton-green/90" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full h-12 bg-castleton-green hover:bg-castleton-green/90 text-white font-bold text-base transition-all duration-300 shadow-lg rounded-xl"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Signing in...
+                  Verifying...
                 </span>
               ) : (
-                'Sign In'
+                'SIGN IN'
               )}
             </Button>
           </form>
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-sm text-muted-foreground mb-2">Demo credentials:</p>
-            <p className="text-xs font-mono">Admin: admin@company.com / admin123</p>
-            <p className="text-xs font-mono">Payroll: payroll@company.com / admin123</p>
-          </div>
         </CardContent>
       </Card>
+
+      <div className="mt-12 text-center animate-fade-in opacity-80">
+        <p className="text-[20px] uppercase font-black tracking-tight text-dark-serpent/40 dark:text-white/30">
+          Powered by: <span className="text-castleton-green dark:text-saffron">Lifewood PH</span>
+        </p>
+      </div>
     </div>
   );
 }
