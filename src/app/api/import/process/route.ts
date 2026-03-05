@@ -305,7 +305,7 @@ export async function PUT(request: NextRequest) {
             overtimeHours: row.overtimeHours || 0,
             holidayPay: row.holidayPay || 0,
             remarks: row.remarks || null,
-            rawData: row.rawData,
+            rawData: row.rawData as any,
           },
           update: {
             timeIn: row.timeIn || null,
@@ -319,7 +319,7 @@ export async function PUT(request: NextRequest) {
             overtimeHours: row.overtimeHours || 0,
             holidayPay: row.holidayPay || 0,
             remarks: row.remarks || null,
-            rawData: row.rawData,
+            rawData: row.rawData as any,
           },
         });
       }
@@ -400,7 +400,7 @@ export async function PUT(request: NextRequest) {
           netPay: calculation.netPay,
           netPayInWords: calculation.netPayInWords,
           govDeductionsApplied: calculation.govDeductionsApplied,
-          computationBreakdown: calculation.computationBreakdown,
+          computationBreakdown: calculation.computationBreakdown as any,
           isMissing: false,
         },
         update: {
@@ -433,7 +433,7 @@ export async function PUT(request: NextRequest) {
           netPay: calculation.netPay,
           netPayInWords: calculation.netPayInWords,
           govDeductionsApplied: calculation.govDeductionsApplied,
-          computationBreakdown: calculation.computationBreakdown,
+          computationBreakdown: calculation.computationBreakdown as any,
           isMissing: false,
         },
       });
@@ -454,7 +454,7 @@ export async function PUT(request: NextRequest) {
         payrollRunId,
         fileName: file.name,
         sheetName,
-        columnMapping: mapping,
+        columnMapping: mapping as any,
         totalRows: parsedRows.length,
         successRows: importedEmployeeIds.size,
         errorRows: parsedRows.filter(r => r.errors.length > 0).length,
