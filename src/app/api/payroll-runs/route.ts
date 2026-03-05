@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { z } from 'zod';
+
+export const dynamic = 'force-dynamic';
 import { getEligibleWorkdays, getCutoffPeriod } from '@/lib/payroll-calculator';
 import { CutoffType } from '@prisma/client';
 

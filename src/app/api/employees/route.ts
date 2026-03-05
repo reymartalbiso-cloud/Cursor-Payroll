@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { getSession, canManageEmployees } from '@/lib/auth';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const employeeSchema = z.object({
   employeeNo: z.string().min(1, 'Employee ID is required'),
   firstName: z.string().min(1, 'First name is required'),
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     // Build orderBy based on sortField
     let orderBy: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[] = { employeeNo: 'asc' };
-    
+
     switch (sortField) {
       case 'employeeNo':
         orderBy = { employeeNo: sortOrder as 'asc' | 'desc' };

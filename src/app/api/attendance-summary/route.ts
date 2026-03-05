@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
@@ -55,12 +57,12 @@ export async function GET(request: NextRequest) {
     // Aggregate attendance by employee
     const attendanceSummary = employees.map(emp => {
       const empPayslips = payslips.filter(p => p.employeeId === emp.id);
-      
+
       // Sum up across both cutoffs
       const totalLateCount = empPayslips.reduce((sum, p) => sum + (p.lateCount || 0), 0);
       const totalAbsentCount = empPayslips.reduce((sum, p) => sum + (p.absentCount || 0), 0);
       const totalLateMinutes = empPayslips.reduce((sum, p) => sum + (p.totalLateMinutes || 0), 0);
-      
+
       // Check if KPI is voided in any payslip
       const kpiVoided = empPayslips.some(p => p.kpiVoided);
       const kpiVoidReason = empPayslips.find(p => p.kpiVoided)?.kpiVoidReason || null;

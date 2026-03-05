@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { HolidayType } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 // GET - List holidays
 export async function GET(request: NextRequest) {
   try {
