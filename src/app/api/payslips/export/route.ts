@@ -2,12 +2,19 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, canViewAllPayslips } from '@/lib/auth';
-import * as XLSX from 'xlsx';
 
 export async function GET(request: NextRequest) {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+        return NextResponse.json({ message: 'Skipping build-time scan' });
+    }
+
     try {
+        const { prisma } = await import('@/lib/prisma');
+        const { getSession, canViewAllPayslips } = await import('@/lib/auth');
+        const XLSX = await import('xlsx');
+        const { cookies } = await import('next/headers');
+        await cookies();
+
         const session = await getSession();
         if (!session || !canViewAllPayslips(session.role)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
