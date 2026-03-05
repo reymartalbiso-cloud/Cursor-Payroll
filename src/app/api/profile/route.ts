@@ -1,8 +1,9 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
 
 // Get current user's profile
 export async function GET() {
@@ -32,3 +33,4 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to get profile' }, { status: 500 });
   }
 }
+

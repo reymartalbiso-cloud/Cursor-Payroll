@@ -1,8 +1,9 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { parseExcelFile, autoDetectMapping } from '@/lib/excel-parser';
-
-export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,3 +51,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to parse Excel file' }, { status: 500 });
   }
 }
+

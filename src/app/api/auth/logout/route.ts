@@ -1,7 +1,8 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { clearSession } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
 
 export async function POST() {
   try {
@@ -15,3 +16,4 @@ export async function POST() {
     );
   }
 }
+

@@ -1,8 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
 import {
     calculatePayslip,
     calculateAttendanceSummary,
@@ -482,3 +484,4 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to import' }, { status: 500 });
     }
 }
+

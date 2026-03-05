@@ -1,9 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManageEmployees } from '@/lib/auth';
 import { z } from 'zod';
-
-export const dynamic = 'force-dynamic';
 
 const employeeSchema = z.object({
   employeeNo: z.string().min(1, 'Employee ID is required'),
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const search = searchParams.get('search') || '';
     const department = searchParams.get('department') || '';
     const status = searchParams.get('status') || '';
@@ -169,3 +170,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

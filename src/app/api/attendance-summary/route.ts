@@ -1,8 +1,9 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
 
@@ -103,3 +104,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to get attendance summary' }, { status: 500 });
   }
 }
+

@@ -1,8 +1,9 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { accountingService } from '@/services/accountingService';
-
-export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/lifescan/notify
@@ -92,3 +93,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

@@ -1,8 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
 import { z } from 'zod'; // Import zod
 import { getEligibleWorkdays, getCutoffPeriod } from '@/lib/payroll-calculator';
 import { CutoffType } from '@prisma/client';
@@ -104,3 +106,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+

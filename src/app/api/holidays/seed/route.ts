@@ -1,10 +1,11 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, isAdmin } from '@/lib/auth';
 import { ALL_PHILIPPINE_HOLIDAYS, getHolidaysForYear } from '@/lib/philippine-holidays';
 import { HolidayType } from '@prisma/client';
-
-export const dynamic = 'force-dynamic';
 
 // POST - Seed Philippine holidays for a specific year or all years
 export async function POST(request: NextRequest) {
@@ -74,3 +75,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to seed holidays' }, { status: 500 });
   }
 }
+

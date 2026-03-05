@@ -1,8 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
+import * as XLSX from 'xlsx';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const payrollRunId = searchParams.get('payrollRunId');
 
     if (!payrollRunId) {
@@ -126,3 +128,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

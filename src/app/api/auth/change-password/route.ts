@@ -1,9 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
-
-export const dynamic = 'force-dynamic';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -50,3 +51,4 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to change password' }, { status: 500 });
   }
 }
+

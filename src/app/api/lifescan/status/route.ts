@@ -1,14 +1,15 @@
-import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { accountingService } from '@/services/accountingService';
-
-export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/lifescan/status
  * Returns LifeScan connection status and optionally tests the API.
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
@@ -57,3 +58,4 @@ export async function GET(request: Request) {
     });
   }
 }
+

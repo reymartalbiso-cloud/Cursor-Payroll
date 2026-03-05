@@ -1,7 +1,8 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
-
-export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const sampleData = [
@@ -27,3 +28,4 @@ export async function GET() {
     },
   });
 }
+

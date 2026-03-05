@@ -1,17 +1,18 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canViewAllPayslips } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session) {
+    if (!session || !canViewAllPayslips(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const search = searchParams.get('search') || '';
     const payrollRunId = searchParams.get('payrollRunId') || '';
     const page = parseInt(searchParams.get('page') || '1');
@@ -77,3 +78,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

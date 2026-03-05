@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { HolidayType } from '@prisma/client';
 
-export const dynamic = 'force-dynamic';
 
 // GET - List holidays
 export async function GET(request: NextRequest) {
@@ -13,7 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : new Date().getFullYear();
 
     const holidays = await prisma.holiday.findMany({
@@ -75,3 +77,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create holiday' }, { status: 500 });
   }
 }
+

@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { z } from 'zod';
 
-export const dynamic = 'force-dynamic';
 import { getEligibleWorkdays, getCutoffPeriod } from '@/lib/payroll-calculator';
 import { CutoffType } from '@prisma/client';
 
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const year = searchParams.get('year');
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
@@ -140,3 +142,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

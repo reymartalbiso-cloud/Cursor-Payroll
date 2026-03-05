@@ -1,9 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { fetchLifeScanProfiles } from '@/lib/lifescan';
 import { accountingService } from '@/services/accountingService';
-
-export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
@@ -35,3 +36,4 @@ export async function GET() {
         );
     }
 }
+
