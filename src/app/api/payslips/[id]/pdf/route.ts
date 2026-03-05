@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canViewAllPayslips } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 // Simple PDF generation using HTML to PDF approach

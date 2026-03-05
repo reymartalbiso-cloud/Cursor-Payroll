@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const sampleData = [
     { 'Employee Name': 'Juan Dela Cruz', 'Output': 8.5 },

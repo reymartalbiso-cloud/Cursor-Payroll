@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManageEmployees } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     // Build orderBy
     let orderBy: Record<string, string> | Record<string, Record<string, string>>[] = { date: 'asc' };
-    
+
     switch (sortField) {
       case 'date':
         orderBy = { date: sortOrder };

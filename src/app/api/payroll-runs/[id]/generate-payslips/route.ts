@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 import { calculatePayslip, HolidayData } from '@/lib/payroll-calculator';
 import { CutoffType } from '@prisma/client';
 import { generateReferenceNo } from '@/lib/utils';

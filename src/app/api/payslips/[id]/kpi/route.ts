@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 import { recalculateWithNewKpi } from '@/lib/payroll-calculator';
 import { numberToWords, roundTo2Decimals } from '@/lib/utils';
 

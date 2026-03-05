@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 import {
   parseExcelFile,
   parseTimesheetData,
