@@ -2,69 +2,22 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, canManagePayroll } from '@/lib/auth';
-
-import {
-  parseExcelFile,
-  parseTimesheetData,
-  validateTimesheetData,
-  ColumnMapping,
-} from '@/lib/excel-parser';
-import {
-  calculatePayslip,
-  calculateAttendanceSummary,
-  getCutoffPeriod,
-  getEligibleWorkdays,
-  isSunday,
-  AttendanceSummary,
-  HolidayData,
-} from '@/lib/payroll-calculator';
-import { generateReferenceNo } from '@/lib/utils';
-import { CutoffType } from '@prisma/client';
-
-// Helper to get attendance from the other cutoff of the same month
-async function getOtherCutoffAttendance(
-  employeeId: string,
-  year: number,
-  month: number,
-  currentCutoffType: CutoffType
-): Promise<AttendanceSummary | undefined> {
-  const otherCutoffType = currentCutoffType === CutoffType.FIRST_HALF
-    ? CutoffType.SECOND_HALF
-    : CutoffType.FIRST_HALF;
-
-  // Find the other payroll run for the same month
-  const otherPayrollRun = await prisma.payrollRun.findFirst({
-    where: {
-      year,
-      month,
-      cutoffType: otherCutoffType,
-    },
-  });
-
-  if (!otherPayrollRun) {
-    return undefined;
-  }
-
-  // Get timesheet entries from the other cutoff
-  const otherEntries = await prisma.timesheetEntry.findMany({
-    where: {
-      payrollRunId: otherPayrollRun.id,
-      employeeId,
-    },
-  });
-
-  if (otherEntries.length === 0) {
-    return undefined;
-  }
-
-  const eligibleWorkdays = getEligibleWorkdays(year, month, otherCutoffType);
-  return calculateAttendanceSummary(otherEntries, eligibleWorkdays);
-}
+import type { ColumnMapping } from '@/lib/excel-parser';
+import type { AttendanceSummary, HolidayData } from '@/lib/payroll-calculator';
+import type { CutoffType } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canManagePayroll } = await import('@/lib/auth');
+    const { parseExcelFile, parseTimesheetData, validateTimesheetData } = await import('@/lib/excel-parser');
+    const { cookies } = await import('next/headers');
+    await cookies();
+
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -153,7 +106,59 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canManagePayroll } = await import('@/lib/auth');
+    const { parseExcelFile, parseTimesheetData } = await import('@/lib/excel-parser');
+    const { calculatePayslip, calculateAttendanceSummary, getEligibleWorkdays, isSunday } = await import('@/lib/payroll-calculator');
+    const { generateReferenceNo } = await import('@/lib/utils');
+    const { cookies } = await import('next/headers');
+    await cookies();
+
+    // Helper to get attendance from the other cutoff of the same month
+    const getOtherCutoffAttendance = async (
+      employeeId: string,
+      year: number,
+      month: number,
+      currentCutoffType: CutoffType
+    ): Promise<AttendanceSummary | undefined> => {
+      const otherCutoffType = currentCutoffType === 'FIRST_HALF'
+        ? 'SECOND_HALF'
+        : 'FIRST_HALF';
+
+      // Find the other payroll run for the same month
+      const otherPayrollRun = await prisma.payrollRun.findFirst({
+        where: {
+          year,
+          month,
+          cutoffType: otherCutoffType,
+        },
+      });
+
+      if (!otherPayrollRun) {
+        return undefined;
+      }
+
+      // Get timesheet entries from the other cutoff
+      const otherEntries = await prisma.timesheetEntry.findMany({
+        where: {
+          payrollRunId: otherPayrollRun.id,
+          employeeId,
+        },
+      });
+
+      if (otherEntries.length === 0) {
+        return undefined;
+      }
+
+      const eligibleWorkdays = getEligibleWorkdays(year, month, otherCutoffType);
+      return calculateAttendanceSummary(otherEntries, eligibleWorkdays);
+    };
+
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -234,7 +239,7 @@ export async function PUT(request: NextRequest) {
     });
     const holidayData: HolidayData[] = holidays.map(h => ({
       date: h.date,
-      type: h.type,
+      type: h.type as any,
       name: h.name,
     }));
 
@@ -338,17 +343,17 @@ export async function PUT(request: NextRequest) {
         employeeId,
         payrollRun.year,
         payrollRun.month,
-        payrollRun.cutoffType
+        payrollRun.cutoffType as any
       );
 
       // Recalculate payslip (with monthly attendance for KPI voiding and holidays)
       const calculation = calculatePayslip(
-        employee,
-        timesheetEntries,
+        employee as any,
+        timesheetEntries as any,
         payrollRun.year,
         payrollRun.month,
-        payrollRun.cutoffType,
-        parseFloat(String(employee.defaultKpi)),
+        payrollRun.cutoffType as any,
+        parseFloat(String(employee.defaultKpi || 0)),
         payrollSettings,
         {},
         otherCutoffAttendance,  // Pass other cutoff's attendance for monthly KPI check

@@ -2,21 +2,9 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, canManagePayroll } from '@/lib/auth';
-
-import {
-    calculatePayslip,
-    calculateAttendanceSummary,
-    getEligibleWorkdays,
-    isSunday,
-    AttendanceSummary,
-    HolidayData,
-} from '@/lib/payroll-calculator';
-import { generateReferenceNo } from '@/lib/utils';
-import { CutoffType } from '@prisma/client';
-import { fetchLifeScanData, LifeScanAttendanceRecord } from '@/lib/lifescan';
-import { parseDecimal } from '@/lib/utils';
+import type { AttendanceSummary, HolidayData } from '@/lib/payroll-calculator';
+import type { CutoffType } from '@prisma/client';
+import type { LifeScanAttendanceRecord } from '@/lib/lifescan';
 
 // Helper types
 interface ValidationResult {
@@ -29,147 +17,103 @@ interface ValidationResult {
     preview: any[];
 }
 
-// Logic to process LifeScan record into TimesheetEntry-like structure
-function processLifeScanRecord(record: LifeScanAttendanceRecord, employee: any): any {
-    const dateStr = record.created_at.split('T')[0]; // YYYY-MM-DD
-    const date = new Date(dateStr);
-
-    if (isSunday(date)) return null;
-
-    let timeInStr = record.timeinmorning ? new Date(record.timeinmorning).toLocaleTimeString('en-US', { hour12: false }) : null;
-    let timeOutStr = record.timeoutafternoon ? new Date(record.timeoutafternoon).toLocaleTimeString('en-US', { hour12: false }) : null;
-
-    // If timeInStr is null but we have status present, maybe use created_at? 
-    // API doc says "created_at": "2023-10-27T08:00:00+08:00" which matches timeinmorning in example.
-    if (!timeInStr && record.created_at) {
-        timeInStr = new Date(record.created_at).toLocaleTimeString('en-US', { hour12: false });
-    }
-
-    let minutesLate = 0;
-    let undertimeMinutes = 0;
-    let overtimeHours = 0;
-    let hoursWorked = 0;
-
-    if (timeInStr && timeOutStr) {
-        const timeInDate = new Date(`2000-01-01T${timeInStr}`);
-        const timeOutDate = new Date(`2000-01-01T${timeOutStr}`);
-
-        // Shift Logic from Import Page
-        // 8:10 cutoff for 8-5 shift
-        const splitTime = new Date('2000-01-01T08:10:00');
-
-        let shiftStart: Date;
-        let shiftEnd: Date;
-        let breakHours = 1;
-
-        if (timeInDate <= splitTime) {
-            // 8-5 Shift
-            shiftStart = new Date('2000-01-01T08:00:00');
-            shiftEnd = new Date('2000-01-01T17:00:00'); // 5 PM
-        } else {
-            // 9-6 Shift
-            shiftStart = new Date('2000-01-01T09:00:00');
-            shiftEnd = new Date('2000-01-01T18:00:00'); // 6 PM
-        }
-
-        // Late
-        if (timeInDate > shiftStart) {
-            minutesLate = Math.round((timeInDate.getTime() - shiftStart.getTime()) / 60000);
-            // Grace period?? Import page says "8:01-8:10 AM = late". So no grace period for late calculation if strictly > 8:00?
-            // Actually page says: "8-5 Shift Rules (Clock in ≤ 8:10 AM): Late: 8:01-8:10 AM = late" -> Wait, if clock in <= 8:10, they are in 8-5 shift. 
-            // If they clock in at 8:05, they are Late (5 mins).
-            // If they clock in at 8:15, they are in 9-6 Shift. 9:00 start. So they are EARLY for 9:00?
-            // Page says: "9-6 Shift Rules (Clock in after 8:10 AM): Time In: Recorded as 9:00 AM... Late: >= 9:06 AM late".
-
-            if (timeInDate > splitTime) {
-                // 9-6 Shift Logic
-                // If logged in at 8:15, it's considered 9:00. Not late.
-                // If logged in at 9:10, it's late (10 mins).
-                const shiftStart9 = new Date('2000-01-01T09:00:00');
-                const grace9 = new Date('2000-01-01T09:05:00');
-                if (timeInDate > grace9) {
-                    minutesLate = Math.round((timeInDate.getTime() - shiftStart9.getTime()) / 60000);
-                } else {
-                    minutesLate = 0;
-                }
-            }
-        }
-
-        // Undertime
-        if (timeOutDate < shiftEnd) {
-            undertimeMinutes = Math.round((shiftEnd.getTime() - timeOutDate.getTime()) / 60000);
-        }
-
-        // Overtime (1 hour beyond shift end)
-        const otThreshold = new Date(shiftEnd.getTime() + 60 * 60 * 1000); // Shift End + 1 hr
-        if (timeOutDate >= otThreshold) {
-            overtimeHours = (timeOutDate.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60);
-            // Floor to nearest decimal or just keep raw?
-            // Usually OT is claimed, but here we auto-calculate.
-        }
-
-        // Hours Worked
-        const diffMs = timeOutDate.getTime() - timeInDate.getTime();
-        hoursWorked = (diffMs / (1000 * 60 * 60)) - breakHours;
-        if (hoursWorked < 0) hoursWorked = 0;
-    }
-
-    return {
-        employeeId: record.profiles?.employee_id || null, // We need to handle mapping if LifeScan ID != System ID
-        employeeName: record.profiles ? `${record.profiles.last_name}, ${record.profiles.first_name}` : 'Unknown',
-        date: date,
-        timeIn: timeInStr,
-        timeOut: timeOutStr,
-        hoursWorked,
-        minutesLate,
-        undertimeMinutes,
-        isAbsent: record.status === 'absent',
-        overtimeHours,
-        // defaults
-        isOnLeave: false,
-        leaveType: null,
-        holidayPay: 0,
-        remarks: 'Imported from LifeScan API',
-        rawData: record
-    };
-}
-
-// Reuse helper
-async function getOtherCutoffAttendance(
-    employeeId: string,
-    year: number,
-    month: number,
-    currentCutoffType: CutoffType
-): Promise<AttendanceSummary | undefined> {
-    const otherCutoffType = currentCutoffType === CutoffType.FIRST_HALF
-        ? CutoffType.SECOND_HALF
-        : CutoffType.FIRST_HALF;
-
-    const otherPayrollRun = await prisma.payrollRun.findFirst({
-        where: {
-            year,
-            month,
-            cutoffType: otherCutoffType,
-        },
-    });
-
-    if (!otherPayrollRun) return undefined;
-
-    const otherEntries = await prisma.timesheetEntry.findMany({
-        where: {
-            payrollRunId: otherPayrollRun.id,
-            employeeId,
-        },
-    });
-
-    if (otherEntries.length === 0) return undefined;
-
-    const eligibleWorkdays = getEligibleWorkdays(year, month, otherCutoffType);
-    return calculateAttendanceSummary(otherEntries, eligibleWorkdays);
-}
-
 export async function POST(request: NextRequest) {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+        return NextResponse.json({ message: 'Skipping build-time scan' });
+    }
+
     try {
+        const { prisma } = await import('@/lib/prisma');
+        const { getSession, canManagePayroll } = await import('@/lib/auth');
+        const { isSunday } = await import('@/lib/payroll-calculator');
+        const { fetchLifeScanData } = await import('@/lib/lifescan');
+        const { cookies } = await import('next/headers');
+        await cookies();
+
+        const processLifeScanRecord = (record: LifeScanAttendanceRecord, employee: any): any => {
+            const dateStr = record.created_at.split('T')[0]; // YYYY-MM-DD
+            const date = new Date(dateStr);
+
+            if (isSunday(date)) return null;
+
+            let timeInStr = record.timeinmorning ? new Date(record.timeinmorning).toLocaleTimeString('en-US', { hour12: false }) : null;
+            let timeOutStr = record.timeoutafternoon ? new Date(record.timeoutafternoon).toLocaleTimeString('en-US', { hour12: false }) : null;
+
+            if (!timeInStr && record.created_at) {
+                timeInStr = new Date(record.created_at).toLocaleTimeString('en-US', { hour12: false });
+            }
+
+            let minutesLate = 0;
+            let undertimeMinutes = 0;
+            let overtimeHours = 0;
+            let hoursWorked = 0;
+
+            if (timeInStr && timeOutStr) {
+                const timeInDate = new Date(`2000-01-01T${timeInStr}`);
+                const timeOutDate = new Date(`2000-01-01T${timeOutStr}`);
+
+                const splitTime = new Date('2000-01-01T08:10:00');
+
+                let shiftStart: Date;
+                let shiftEnd: Date;
+                let breakHours = 1;
+
+                if (timeInDate <= splitTime) {
+                    shiftStart = new Date('2000-01-01T08:00:00');
+                    shiftEnd = new Date('2000-01-01T17:00:00'); // 5 PM
+                } else {
+                    shiftStart = new Date('2000-01-01T09:00:00');
+                    shiftEnd = new Date('2000-01-01T18:00:00'); // 6 PM
+                }
+
+                if (timeInDate > shiftStart) {
+                    if (timeInDate > splitTime) {
+                        const shiftStart9 = new Date('2000-01-01T09:00:00');
+                        const grace9 = new Date('2000-01-01T09:05:00');
+                        if (timeInDate > grace9) {
+                            minutesLate = Math.round((timeInDate.getTime() - shiftStart9.getTime()) / 60000);
+                        } else {
+                            minutesLate = 0;
+                        }
+                    } else {
+                        minutesLate = Math.round((timeInDate.getTime() - shiftStart.getTime()) / 60000);
+                    }
+                }
+
+                if (timeOutDate < shiftEnd) {
+                    undertimeMinutes = Math.round((shiftEnd.getTime() - timeOutDate.getTime()) / 60000);
+                }
+
+                const otThreshold = new Date(shiftEnd.getTime() + 60 * 60 * 1000); // Shift End + 1 hr
+                if (timeOutDate >= otThreshold) {
+                    overtimeHours = (timeOutDate.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60);
+                }
+
+                const diffMs = timeOutDate.getTime() - timeInDate.getTime();
+                hoursWorked = (diffMs / (1000 * 60 * 60)) - breakHours;
+                if (hoursWorked < 0) hoursWorked = 0;
+            }
+
+            return {
+                employeeId: record.profiles?.employee_id || null, // We need to handle mapping if LifeScan ID != System ID
+                employeeName: record.profiles ? `${record.profiles.last_name}, ${record.profiles.first_name}` : 'Unknown',
+                date: date,
+                timeIn: timeInStr,
+                timeOut: timeOutStr,
+                hoursWorked,
+                minutesLate,
+                undertimeMinutes,
+                isAbsent: record.status === 'absent',
+                overtimeHours,
+                // defaults
+                isOnLeave: false,
+                leaveType: null,
+                holidayPay: 0,
+                remarks: 'Imported from LifeScan API',
+                rawData: record
+            };
+        };
+
         const session = await getSession();
         if (!session || !canManagePayroll(session.role)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -205,7 +149,7 @@ export async function POST(request: NextRequest) {
         });
 
         // 3. Process records
-        const processedRows = relevantRecords.map(r => processLifeScanRecord(r, null)).filter(r => r !== null);
+        const processedRows = relevantRecords.map((r: any) => processLifeScanRecord(r, null)).filter((r: unknown) => r !== null);
 
         // 4. Validation
         const employees = await prisma.employee.findMany({
@@ -215,7 +159,6 @@ export async function POST(request: NextRequest) {
         // Primary lookup: by Employee ID (employeeNo)
         const employeeByNo = new Map(employees.map(e => [e.employeeNo.toLowerCase(), e]));
 
-        const missingEmployees = new Set<string>(); // In masterlist but not in import (optional check)
         const unrecognizedEmployees = new Set<string>(); // In import but not in masterlist
         const invalidRows: any[] = [];
         const validRows: any[] = [];
@@ -223,15 +166,15 @@ export async function POST(request: NextRequest) {
         // Check consistency
         const uniqueImportedIds = new Set<string>();
 
-        processedRows.forEach((row, index) => {
-            if (!row.employeeId) {
+        processedRows.forEach((row: any, index: number) => {
+            if (!row || !row.employeeId) {
                 invalidRows.push({ rowIndex: index, errors: ['Missing Employee ID'] });
                 return;
             }
 
-            const employee = employeeByNo.get(row.employeeId.toLowerCase().trim());
+            const employee = employeeByNo.get(String(row.employeeId).toLowerCase().trim());
             if (!employee) {
-                unrecognizedEmployees.add(row.employeeId);
+                unrecognizedEmployees.add(String(row.employeeId));
                 // We can treat unrecognized as invalid or just skip
             } else {
                 uniqueImportedIds.add(employee.employeeNo);
@@ -255,7 +198,135 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+        return NextResponse.json({ message: 'Skipping build-time scan' });
+    }
+
     try {
+        const { prisma } = await import('@/lib/prisma');
+        const { getSession, canManagePayroll } = await import('@/lib/auth');
+        const { isSunday, calculatePayslip, calculateAttendanceSummary, getEligibleWorkdays } = await import('@/lib/payroll-calculator');
+        const { fetchLifeScanData } = await import('@/lib/lifescan');
+        const { generateReferenceNo } = await import('@/lib/utils');
+        const { cookies } = await import('next/headers');
+        await cookies();
+
+        const processLifeScanRecord = (record: LifeScanAttendanceRecord, employee: any): any => {
+            const dateStr = record.created_at.split('T')[0]; // YYYY-MM-DD
+            const date = new Date(dateStr);
+
+            if (isSunday(date)) return null;
+
+            let timeInStr = record.timeinmorning ? new Date(record.timeinmorning).toLocaleTimeString('en-US', { hour12: false }) : null;
+            let timeOutStr = record.timeoutafternoon ? new Date(record.timeoutafternoon).toLocaleTimeString('en-US', { hour12: false }) : null;
+
+            if (!timeInStr && record.created_at) {
+                timeInStr = new Date(record.created_at).toLocaleTimeString('en-US', { hour12: false });
+            }
+
+            let minutesLate = 0;
+            let undertimeMinutes = 0;
+            let overtimeHours = 0;
+            let hoursWorked = 0;
+
+            if (timeInStr && timeOutStr) {
+                const timeInDate = new Date(`2000-01-01T${timeInStr}`);
+                const timeOutDate = new Date(`2000-01-01T${timeOutStr}`);
+
+                const splitTime = new Date('2000-01-01T08:10:00');
+
+                let shiftStart: Date;
+                let shiftEnd: Date;
+                let breakHours = 1;
+
+                if (timeInDate <= splitTime) {
+                    shiftStart = new Date('2000-01-01T08:00:00');
+                    shiftEnd = new Date('2000-01-01T17:00:00'); // 5 PM
+                } else {
+                    shiftStart = new Date('2000-01-01T09:00:00');
+                    shiftEnd = new Date('2000-01-01T18:00:00'); // 6 PM
+                }
+
+                if (timeInDate > shiftStart) {
+                    if (timeInDate > splitTime) {
+                        const shiftStart9 = new Date('2000-01-01T09:00:00');
+                        const grace9 = new Date('2000-01-01T09:05:00');
+                        if (timeInDate > grace9) {
+                            minutesLate = Math.round((timeInDate.getTime() - shiftStart9.getTime()) / 60000);
+                        } else {
+                            minutesLate = 0;
+                        }
+                    } else {
+                        minutesLate = Math.round((timeInDate.getTime() - shiftStart.getTime()) / 60000);
+                    }
+                }
+
+                if (timeOutDate < shiftEnd) {
+                    undertimeMinutes = Math.round((shiftEnd.getTime() - timeOutDate.getTime()) / 60000);
+                }
+
+                const otThreshold = new Date(shiftEnd.getTime() + 60 * 60 * 1000); // Shift End + 1 hr
+                if (timeOutDate >= otThreshold) {
+                    overtimeHours = (timeOutDate.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60);
+                }
+
+                const diffMs = timeOutDate.getTime() - timeInDate.getTime();
+                hoursWorked = (diffMs / (1000 * 60 * 60)) - breakHours;
+                if (hoursWorked < 0) hoursWorked = 0;
+            }
+
+            return {
+                employeeId: record.profiles?.employee_id || null,
+                employeeName: record.profiles ? `${record.profiles.last_name}, ${record.profiles.first_name}` : 'Unknown',
+                date: date,
+                timeIn: timeInStr,
+                timeOut: timeOutStr,
+                hoursWorked,
+                minutesLate,
+                undertimeMinutes,
+                isAbsent: record.status === 'absent',
+                overtimeHours,
+                isOnLeave: false,
+                leaveType: null,
+                holidayPay: 0,
+                remarks: 'Imported from LifeScan API',
+                rawData: record
+            };
+        };
+
+        const getOtherCutoffAttendance = async (
+            employeeId: string,
+            year: number,
+            month: number,
+            currentCutoffType: CutoffType
+        ): Promise<AttendanceSummary | undefined> => {
+            const otherCutoffType = currentCutoffType === 'FIRST_HALF'
+                ? 'SECOND_HALF'
+                : 'FIRST_HALF';
+
+            const otherPayrollRun = await prisma.payrollRun.findFirst({
+                where: {
+                    year,
+                    month,
+                    cutoffType: otherCutoffType,
+                },
+            });
+
+            if (!otherPayrollRun) return undefined;
+
+            const otherEntries = await prisma.timesheetEntry.findMany({
+                where: {
+                    payrollRunId: otherPayrollRun.id,
+                    employeeId,
+                },
+            });
+
+            if (otherEntries.length === 0) return undefined;
+
+            const eligibleWorkdays = getEligibleWorkdays(year, month, otherCutoffType);
+            return calculateAttendanceSummary(otherEntries, eligibleWorkdays);
+        };
+
         const session = await getSession();
         if (!session || !canManagePayroll(session.role)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -289,7 +360,7 @@ export async function PUT(request: NextRequest) {
             end_date: endStr,
         });
 
-        const processedRows = relevantRecords.map(r => processLifeScanRecord(r, null)).filter(r => r !== null);
+        const processedRows = relevantRecords.map((r: any) => processLifeScanRecord(r, null)).filter((r: unknown) => r !== null);
 
         // 2. Get Employees
         const employees = await prisma.employee.findMany({ where: { deletedAt: null } });
@@ -304,7 +375,7 @@ export async function PUT(request: NextRequest) {
         };
 
         const holidays = await prisma.holiday.findMany({ where: { year: payrollRun.year } });
-        const holidayData: HolidayData[] = holidays.map(h => ({ date: h.date, type: h.type, name: h.name }));
+        const holidayData: HolidayData[] = holidays.map(h => ({ date: h.date, type: h.type as any, name: h.name }));
 
         // 4. Delete existing entries
         await prisma.timesheetEntry.deleteMany({ where: { payrollRunId } });
@@ -313,9 +384,10 @@ export async function PUT(request: NextRequest) {
         const employeeEntries = new Map<string, any[]>();
         const importedEmployeeIds = new Set<string>();
 
-        for (const row of processedRows) {
-            if (!row.employeeId) continue;
-            const employee = employeeByNo.get(row.employeeId.toLowerCase().trim());
+        for (const item of processedRows) {
+            const row = item as any;
+            if (!row || !row.employeeId) continue;
+            const employee = employeeByNo.get(String(row.employeeId).toLowerCase().trim());
             if (!employee || employee.status !== 'ACTIVE') continue;
 
             const entries = employeeEntries.get(employee.id) || [];
@@ -367,15 +439,15 @@ export async function PUT(request: NextRequest) {
 
             // Recalculate Payslip
             const timesheetEntries = await prisma.timesheetEntry.findMany({ where: { payrollRunId, employeeId } });
-            const otherCutoffAttendance = await getOtherCutoffAttendance(employeeId, payrollRun.year, payrollRun.month, payrollRun.cutoffType);
+            const otherCutoffAttendance = await getOtherCutoffAttendance(employeeId, payrollRun.year, payrollRun.month, payrollRun.cutoffType as any);
 
             const calculation = calculatePayslip(
-                employee,
-                timesheetEntries,
+                employee as any,
+                timesheetEntries as any,
                 payrollRun.year,
                 payrollRun.month,
-                payrollRun.cutoffType,
-                parseFloat(String(employee.defaultKpi)),
+                payrollRun.cutoffType as any,
+                parseFloat(String(employee.defaultKpi || 0)),
                 payrollSettings,
                 {},
                 otherCutoffAttendance,

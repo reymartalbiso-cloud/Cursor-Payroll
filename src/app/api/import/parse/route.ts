@@ -2,11 +2,18 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, canManagePayroll } from '@/lib/auth';
-import { parseExcelFile, autoDetectMapping } from '@/lib/excel-parser';
 
 export async function POST(request: NextRequest) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    const { getSession, canManagePayroll } = await import('@/lib/auth');
+    const { parseExcelFile, autoDetectMapping } = await import('@/lib/excel-parser');
+    const { cookies } = await import('next/headers');
+    await cookies();
+
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -43,7 +50,7 @@ export async function POST(request: NextRequest) {
         headers: s.headers,
         rowCount: s.rowCount,
         preview: s.data.slice(0, 5),
-        autoMapping: autoDetectMapping(s.headers), // Auto-detect column mapping
+        autoMapping: autoDetectMapping(s.headers),
       })),
     });
   } catch (error) {
@@ -51,4 +58,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to parse Excel file' }, { status: 500 });
   }
 }
-
