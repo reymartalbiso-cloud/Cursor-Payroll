@@ -2,11 +2,18 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, canManageEmployees } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canManageEmployees } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+    await cookies();
+
     const session = await getSession();
     if (!session || !canManageEmployees(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -17,7 +24,7 @@ export async function GET(request: NextRequest) {
     const employeeId = searchParams.get('employeeId');
     const search = searchParams.get('search') || '';
     const sortField = searchParams.get('sortField') || 'date';
-    const sortOrder = searchParams.get('sortOrder') || 'asc';
+    const sortOrder = (searchParams.get('sortOrder') || 'asc') as 'asc' | 'desc';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const filterLate = searchParams.get('filterLate'); // 'all', 'late', 'excused'
@@ -28,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause
-    const where: Record<string, unknown> = {
+    const where: Record<string, any> = {
       payrollRunId,
     };
 
@@ -63,7 +70,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build orderBy
-    let orderBy: Record<string, string> | Record<string, Record<string, string>>[] = { date: 'asc' };
+    let orderBy: any = { date: 'asc' };
 
     switch (sortField) {
       case 'date':

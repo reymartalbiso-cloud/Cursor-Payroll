@@ -2,14 +2,19 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, canManagePayroll } from '@/lib/auth';
-import { HolidayType } from '@prisma/client';
-
 
 // GET - List holidays
 export async function GET(request: NextRequest) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canManagePayroll } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+    await cookies();
+
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,7 +37,16 @@ export async function GET(request: NextRequest) {
 
 // POST - Create holiday
 export async function POST(request: NextRequest) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canManagePayroll } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+    await cookies();
+
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -65,7 +79,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         date: holidayDate,
-        type: type as HolidayType,
+        type: type as any,
         year,
         description,
       },
