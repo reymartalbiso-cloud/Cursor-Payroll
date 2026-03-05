@@ -4,8 +4,17 @@ export const revalidate = 0;
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canManagePayroll } from '@/lib/auth';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
+  // Explicitly trigger dynamic execution by calling cookies()
+  await cookies();
+
+  // Build-time guard: if database is not available or we're in a pre-rendering environment, bail early with 200
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Build mode - initialization only' });
+  }
+
   try {
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
