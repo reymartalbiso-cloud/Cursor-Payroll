@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const { cookies } = await import('next/headers');
 
     // 3. Force dynamic context
-    await cookies();
+    cookies();
 
     const { email, password } = await request.json();
 
@@ -27,33 +27,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Login attempt for:', email);
     const user = await prisma.user.findUnique({
       where: { email },
       include: { employee: true },
     });
 
     if (!user) {
+      console.log('User not found');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
+    console.log('User found, checking isActive');
     if (!user.isActive) {
+      console.log('User is not active');
       return NextResponse.json(
         { error: 'Account is disabled' },
         { status: 401 }
       );
     }
 
+    console.log('Checking password');
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
+      console.log('Invalid password');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
+    console.log('Creating token');
     const token = await createToken({
       userId: user.id,
       email: user.email,
@@ -62,8 +69,10 @@ export async function POST(request: NextRequest) {
       employeeId: user.employeeId,
     });
 
+    console.log('Setting session');
     await setSession(token);
 
+    console.log('Login successful');
     return NextResponse.json({
       user: {
         id: user.id,
@@ -73,10 +82,10 @@ export async function POST(request: NextRequest) {
         employeeId: user.employeeId,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }
