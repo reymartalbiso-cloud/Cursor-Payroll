@@ -141,7 +141,7 @@ export async function POST(
             netPay: sanitize(calculation.netPay),
             netPayInWords: calculation.netPayInWords || 'Zero Pesos Only',
             govDeductionsApplied: calculation.govDeductionsApplied,
-            computationBreakdown: calculation.computationBreakdown,
+            computationBreakdown: calculation.computationBreakdown as any,
             isMissing: true, // Mark as missing until timesheet imported
           },
         });
