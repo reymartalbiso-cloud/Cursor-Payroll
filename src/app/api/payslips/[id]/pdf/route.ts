@@ -1,9 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, canViewAllPayslips } from '@/lib/auth';
-
 export const dynamic = 'force-dynamic';
-import { formatCurrency, formatDate } from '@/lib/utils';
+export const revalidate = 0;
+
+import { NextRequest, NextResponse } from 'next/server';
 
 // Simple PDF generation using HTML to PDF approach
 // For production, consider using @react-pdf/renderer or puppeteer
@@ -12,7 +10,21 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 1. Immediate build-time rescue
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    // 2. Dynamic imports for isolation
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canViewAllPayslips } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+    const { formatCurrency, formatDate } = await import('@/lib/utils');
+
+    // 3. Force dynamic context
+    await cookies();
+
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -43,8 +55,8 @@ export async function GET(
     const settings = await prisma.setting.findMany();
     const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
 
-    // Generate HTML for PDF
-    const html = generatePayslipHtml(payslip, settingsMap);
+    // Generate HTML for PDF (passing formatters to the inner function context)
+    const html = generatePayslipHtml(payslip, settingsMap, formatCurrency, formatDate);
 
     // Return HTML as PDF (browser will render/print)
     // For proper PDF, integrate with puppeteer or similar
@@ -60,7 +72,7 @@ export async function GET(
   }
 }
 
-function generatePayslipHtml(payslip: any, settings: Record<string, string>): string {
+function generatePayslipHtml(payslip: any, settings: Record<string, string>, formatCurrency: any, formatDate: any): string {
   const companyName = settings.company_name || 'Company Name';
   const companyAddress = settings.company_address || '';
 

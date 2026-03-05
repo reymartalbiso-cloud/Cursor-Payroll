@@ -1,17 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, canManagePayroll } from '@/lib/auth';
-
 export const dynamic = 'force-dynamic';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import archiver from 'archiver';
-import { Readable } from 'stream';
+export const revalidate = 0;
+
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 1. Immediate build-time rescue
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    // 2. Dynamic imports for isolation
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, canManagePayroll } = await import('@/lib/auth');
+    const { cookies } = await import('next/headers');
+    const { formatCurrency, formatDate } = await import('@/lib/utils');
+    const archiver = (await import('archiver')).default;
+
+    // 3. Force dynamic context
+    await cookies();
+
     const session = await getSession();
     if (!session || !canManagePayroll(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -44,7 +55,7 @@ export async function POST(
 
     // Add each payslip as HTML file
     for (const payslip of payrollRun.payslips) {
-      const html = generatePayslipHtml(payslip, payrollRun, settingsMap);
+      const html = generatePayslipHtml(payslip, payrollRun, settingsMap, formatCurrency, formatDate);
       archive.append(html, { name: `payslip-${payslip.employeeNo}-${payslip.referenceNo}.html` });
     }
 
@@ -68,7 +79,7 @@ export async function POST(
   }
 }
 
-function generatePayslipHtml(payslip: any, payrollRun: any, settings: Record<string, string>): string {
+function generatePayslipHtml(payslip: any, payrollRun: any, settings: Record<string, string>, formatCurrency: any, formatDate: any): string {
   const companyName = settings.company_name || 'Company Name';
   const companyAddress = settings.company_address || '';
 
