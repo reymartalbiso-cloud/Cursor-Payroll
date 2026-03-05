@@ -71,7 +71,7 @@ export function parseExcelFile(buffer: ArrayBuffer): ExcelSheet[] {
 
   for (const sheetName of workbook.SheetNames) {
     const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+    const jsonData = XLSX.utils.sheet_to_json<any[]>(worksheet, {
       header: 1,
       raw: false,
       dateNF: 'yyyy-mm-dd',
@@ -80,14 +80,14 @@ export function parseExcelFile(buffer: ArrayBuffer): ExcelSheet[] {
     if (jsonData.length === 0) continue;
 
     // First row as headers
-    const headers = (jsonData[0] as unknown[]).map((h, i) =>
+    const headers = jsonData[0].map((h: any, i: number) =>
       h?.toString().trim() || `Column_${i + 1}`
     );
 
     // Convert rows to objects
     const data: Record<string, unknown>[] = [];
     for (let i = 1; i < jsonData.length; i++) {
-      const row = jsonData[i] as unknown[];
+      const row = jsonData[i];
       if (!row || row.every(cell => cell === null || cell === undefined || cell === '')) {
         continue; // Skip empty rows
       }
