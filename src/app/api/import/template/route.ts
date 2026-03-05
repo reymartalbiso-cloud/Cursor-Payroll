@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { generateSampleTemplate } from '@/lib/excel-parser';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await getSession();

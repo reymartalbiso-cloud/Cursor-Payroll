@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { parseExcelFile, autoDetectMapping } from '@/lib/excel-parser';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();

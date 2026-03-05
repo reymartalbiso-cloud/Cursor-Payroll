@@ -4,6 +4,8 @@ import { getSession, isAdmin } from '@/lib/auth';
 import { ALL_PHILIPPINE_HOLIDAYS, getHolidaysForYear } from '@/lib/philippine-holidays';
 import { HolidayType } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 // POST - Seed Philippine holidays for a specific year or all years
 export async function POST(request: NextRequest) {
   try {
@@ -19,9 +21,9 @@ export async function POST(request: NextRequest) {
     const holidaysToSeed = year ? getHolidaysForYear(year) : ALL_PHILIPPINE_HOLIDAYS;
 
     if (holidaysToSeed.length === 0) {
-      return NextResponse.json({ 
-        error: year 
-          ? `No holidays defined for year ${year}. Supported years: 2024, 2025, 2026` 
+      return NextResponse.json({
+        error: year
+          ? `No holidays defined for year ${year}. Supported years: 2024, 2025, 2026`
           : 'No holidays to seed'
       }, { status: 400 });
     }

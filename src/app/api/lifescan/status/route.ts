@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSession, canManagePayroll } from '@/lib/auth';
 import { accountingService } from '@/services/accountingService';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/lifescan/status
  * Returns LifeScan connection status and optionally tests the API.
