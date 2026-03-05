@@ -2,14 +2,20 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession, isAdmin } from '@/lib/auth';
-import { ALL_PHILIPPINE_HOLIDAYS, getHolidaysForYear } from '@/lib/philippine-holidays';
-import { HolidayType } from '@prisma/client';
 
 // POST - Seed Philippine holidays for a specific year or all years
 export async function POST(request: NextRequest) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ message: 'Skipping build-time scan' });
+  }
+
   try {
+    const { prisma } = await import('@/lib/prisma');
+    const { getSession, isAdmin } = await import('@/lib/auth');
+    const { ALL_PHILIPPINE_HOLIDAYS, getHolidaysForYear } = await import('@/lib/philippine-holidays');
+    const { cookies } = await import('next/headers');
+    await cookies();
+
     const session = await getSession();
     if (!session || !isAdmin(session.role)) {
       return NextResponse.json({ error: 'Unauthorized - Admin only' }, { status: 401 });
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest) {
           data: {
             name: holiday.name,
             date: holidayDate,
-            type: holiday.type as HolidayType,
+            type: holiday.type as any,
             year: holidayYear,
             description: `Philippine ${holiday.type === 'REGULAR' ? 'Regular' : 'Special Non-Working'} Holiday`,
           },
