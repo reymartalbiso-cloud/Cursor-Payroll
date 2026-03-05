@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, canViewAllPayslips } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
@@ -17,9 +19,9 @@ export async function GET(request: NextRequest) {
 
     // Build where clause based on role
     const canViewAll = canViewAllPayslips(session.role);
-    
+
     const where: Record<string, unknown> = {};
-    
+
     // Employees can only view their own payslips
     if (!canViewAll) {
       if (!session.employeeId) {
