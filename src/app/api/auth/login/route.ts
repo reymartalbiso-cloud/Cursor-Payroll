@@ -13,10 +13,6 @@ export async function POST(request: NextRequest) {
     // 2. Dynamic imports for isolation
     const { prisma } = await import('@/lib/prisma');
     const { verifyPassword, createToken, setSession } = await import('@/lib/auth');
-    const { cookies } = await import('next/headers');
-
-    // 3. Force dynamic context
-    cookies();
 
     const { email, password } = await request.json();
 
@@ -85,7 +81,11 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      {
+        error: `Internal server error: ${error.message}`,
+        details: error.message,
+        stack: error.stack
+      },
       { status: 500 }
     );
   }

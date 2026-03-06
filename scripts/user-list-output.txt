@@ -1,0 +1,4 @@
+Registered Users Found:
+- Email: admin@payroll.com | Role: ADMIN | Active: true
+- Email: admin@company.com | Role: ADMIN | Active: true
+- Email: payroll@company.com | Role: PAYROLL_ADMIN | Active: true
