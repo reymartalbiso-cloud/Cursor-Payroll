@@ -16,11 +16,8 @@ export function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { messages, input = '', handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input = '', setInput, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: '/api/chat',
-    body: {
-      file: selectedFile,
-    },
     initialMessages: [
       {
         id: 'welcome',
@@ -30,6 +27,10 @@ export function ChatWidget() {
     ],
     onFinish: () => {
       setSelectedFile(null);
+    },
+    onError: (error) => {
+      console.error('Chat Widget Error:', error);
+      alert('Sorry, I encountered an error. Please try again or check your connection.');
     }
   });
 
@@ -147,8 +148,22 @@ export function ChatWidget() {
                 </div>
               )}
               <form
-                onSubmit={(e) => {
-                  handleSubmit(e);
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!input?.trim() && !selectedFile) return;
+                  
+                  await append({
+                    role: 'user',
+                    content: input || (selectedFile ? `Analyzing file: ${selectedFile.name}` : ''),
+                  }, {
+                    options: {
+                      body: {
+                        file: selectedFile
+                      }
+                    }
+                  });
+                  
+                  setInput('');
                 }}
                 className="relative flex items-center gap-2"
               >

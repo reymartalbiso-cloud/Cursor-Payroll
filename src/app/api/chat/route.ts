@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     }
 
     const result = await streamText({
-      model: getAgentModel(),
+      model: getAgentModel() as any,
       system: `${SYSTEM_PROMPT}${fileContext ? `\n\nATTACHED FILE CONTEXT:\n${fileContext}` : ''}`,
       messages,
       tools: tools as any,

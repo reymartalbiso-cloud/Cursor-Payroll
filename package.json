@@ -30,7 +30,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.0.7",
     "@react-pdf/renderer": "^3.4.0",
-    "ai": "^3.3.0",
+    "ai": "^3.4.1",
     "archiver": "^7.0.0",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
