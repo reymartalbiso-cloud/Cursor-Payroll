@@ -3,11 +3,16 @@ import { aiTools } from './tools';
 
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY || '',
+  headers: {
+    'HTTP-Referer': 'https://lifewood.ph', // Required by OpenRouter for some models
+    'X-Title': 'Lifewood Payroll AI',
+  }
 });
 
 export const getAgentModel = () => {
   const modelId = process.env.AI_MODEL || 'minimax/minimax-m2.5';
+  console.log('AI Model selected:', modelId);
   return openrouter(modelId);
 };
 
