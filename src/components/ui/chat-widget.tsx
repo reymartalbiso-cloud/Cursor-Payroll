@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from 'ai/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Minus, Bot, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Minus, Bot, Loader2, Paperclip, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -12,10 +12,15 @@ import { cn } from '@/lib/utils';
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{ name: string; type: string; data: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { messages, input = '', handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
+    body: {
+      file: selectedFile,
+    },
     initialMessages: [
       {
         id: 'welcome',
@@ -23,6 +28,9 @@ export function ChatWidget() {
         content: 'Hello! I am your Lifewood Payroll Assistant. How can I help you today?',
       },
     ],
+    onFinish: () => {
+      setSelectedFile(null);
+    }
   });
 
   // Auto-scroll to bottom of chat
@@ -30,7 +38,33 @@ export function ChatWidget() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, selectedFile]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls') && !file.name.endsWith('.csv')) {
+      alert('Please upload an Excel or CSV file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setSelectedFile({
+        name: file.name,
+        type: file.type,
+        data: base64
+      });
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
@@ -94,27 +128,67 @@ export function ChatWidget() {
 
             {/* Input Area */}
             <div className="border-t p-4 bg-background">
+              {selectedFile && (
+                <div className="mb-3 flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="p-1.5 rounded-md bg-primary/10 text-primary">
+                      <FileSpreadsheet size={16} />
+                    </div>
+                    <span className="text-xs font-medium truncate max-w-[200px]">{selectedFile.name}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setSelectedFile(null)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              )}
               <form
-                onSubmit={handleSubmit}
-                className="relative flex items-center"
+                onSubmit={(e) => {
+                  handleSubmit(e);
+                }}
+                className="relative flex items-center gap-2"
               >
-                <Input
-                  value={input}
-                  onChange={handleInputChange}
-                  placeholder="Ask me anything about payroll..."
-                  className="pr-12 h-12 rounded-xl border-muted bg-muted/30 focus-visible:ring-primary/20"
-                />
-                <Button
-                  type="submit"
-                  disabled={!input?.trim() || isLoading}
-                  size="icon"
-                  className={cn(
-                    "absolute right-1.5 h-9 w-9 rounded-lg transition-all duration-300",
-                    input?.trim() ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0 pointer-events-none"
-                  )}
-                >
-                  <Send size={18} />
-                </Button>
+                <div className="relative flex-1 flex items-center">
+                  <Input
+                    value={input}
+                    onChange={handleInputChange}
+                    placeholder={selectedFile ? "Ask about this file..." : "Ask me anything about payroll..."}
+                    className="pl-10 pr-12 h-12 rounded-xl border-muted bg-muted/30 focus-visible:ring-primary/20"
+                  />
+                  <div className="absolute left-1.5">
+                    <input
+                      type="file"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept=".xlsx,.xls,.csv"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip size={18} />
+                    </Button>
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={(!input?.trim() && !selectedFile) || isLoading}
+                    size="icon"
+                    className={cn(
+                      "absolute right-1.5 h-9 w-9 rounded-lg transition-all duration-300",
+                      (input?.trim() || selectedFile) ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0 pointer-events-none"
+                    )}
+                  >
+                    <Send size={18} />
+                  </Button>
+                </div>
               </form>
               <p className="mt-2 text-[10px] text-center text-muted-foreground">
                 Powered by Lifewood AI • Results may vary
