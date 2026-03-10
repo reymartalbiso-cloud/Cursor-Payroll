@@ -84,7 +84,7 @@ A production-ready web application for generating payslips per cutoff (15 days) 
 
 6. **Access the application**
    
-   Open [http://localhost:3000](http://localhost:3000)
+   Open [http://localhost:3000](http://localhost:3000) or [https://lifewoodpayroll.vercel.app](https://lifewoodpayroll.vercel.app)
 
 ### Demo Credentials
 
