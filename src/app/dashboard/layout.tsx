@@ -20,7 +20,11 @@ export default function DashboardLayout({
         const res = await fetch('/api/auth/me');
         if (res.ok) {
           const data = await res.json();
-          setUser(data.user);
+          if (data.user) {
+            setUser(data.user);
+          } else {
+            router.push('/login');
+          }
         } else {
           router.push('/login');
         }
