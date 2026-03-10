@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minus, Bot, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input = '', handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
     initialMessages: [
       {
@@ -106,11 +106,11 @@ export function ChatWidget() {
                 />
                 <Button
                   type="submit"
-                  disabled={!input.trim() || isLoading}
+                  disabled={!input?.trim() || isLoading}
                   size="icon"
                   className={cn(
                     "absolute right-1.5 h-9 w-9 rounded-lg transition-all duration-300",
-                    input.trim() ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0 pointer-events-none"
+                    input?.trim() ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0 pointer-events-none"
                   )}
                 >
                   <Send size={18} />
