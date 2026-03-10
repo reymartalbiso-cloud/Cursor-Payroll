@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useChat } from 'ai/react';
+import { useChat } from 'ai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minus, Bot, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
