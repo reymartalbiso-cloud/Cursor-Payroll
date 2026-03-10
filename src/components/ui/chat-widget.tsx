@@ -28,9 +28,22 @@ export function ChatWidget() {
     onFinish: () => {
       setSelectedFile(null);
     },
-    onError: (error) => {
+    onError: async (error) => {
       console.error('Chat Widget Error:', error);
-      alert('Sorry, I encountered an error. Please try again or check your connection.');
+      let errorMessage = 'Sorry, I encountered an error. Please try again or check your connection.';
+      
+      try {
+        // In AI SDK v3.4+, the error message might be in the error object itself
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+      } catch (e) {
+        console.error('Failed to parse error message:', e);
+      }
+      
+      alert(errorMessage);
     }
   });
 
@@ -156,10 +169,8 @@ export function ChatWidget() {
                     role: 'user',
                     content: input || (selectedFile ? `Analyzing file: ${selectedFile.name}` : ''),
                   }, {
-                    options: {
-                      body: {
-                        file: selectedFile
-                      }
+                    body: {
+                      file: selectedFile
                     }
                   });
                   

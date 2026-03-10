@@ -5,6 +5,9 @@ import * as XLSX from 'xlsx';
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
+// Increase body size limit for file uploads
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const { messages, file } = await req.json();
@@ -43,9 +46,20 @@ export async function POST(req: Request) {
 
     return result.toDataStreamResponse();
   } catch (error: any) {
-    console.error('Chat API Error:', error);
+    console.error('Chat API Error Details:', {
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause,
+    });
+    
+    // Return more specific error message if possible
+    const errorMessage = error.message || 'Failed to process chat request';
+    
     return new Response(
-      JSON.stringify({ error: 'Failed to process chat request' }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

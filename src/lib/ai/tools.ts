@@ -144,4 +144,33 @@ export const aiTools = {
       return runs;
     },
   }),
+
+  listEmployeesWithPay: tool({
+    description: 'Get a list of all active employees with their basic pay. and department.',
+    parameters: z.object({
+      department: z.string().optional().describe('Filter by department'),
+    }),
+    execute: async ({ department }: any) => {
+      const employees = await prisma.employee.findMany({
+        where: {
+          status: 'ACTIVE',
+          ...(department ? { department: { contains: department, mode: 'insensitive' } } : {}),
+        },
+        select: {
+          id: true,
+          employeeNo: true,
+          firstName: true,
+          lastName: true,
+          department: true,
+          position: true,
+          monthlySalary: true,
+          basicPayPerCutoff: true,
+        },
+        orderBy: {
+          lastName: 'asc',
+        },
+      });
+      return employees;
+    },
+  }),
 };
