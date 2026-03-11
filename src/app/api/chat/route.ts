@@ -9,13 +9,40 @@ export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  console.log('POST /api/chat hit');
   try {
-    const { messages, file } = await req.json();
+    const apiKey = (process.env.OPENROUTER_API_KEY || '').trim();
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'AI service is not configured. Please set OPENROUTER_API_KEY in your environment.' }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let messages: unknown[] | undefined;
+    let file: unknown = null;
+    try {
+      const body = await req.json();
+      messages = body?.messages ?? [];
+      file = body?.file ?? null;
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!Array.isArray(messages)) {
+      return new Response(
+        JSON.stringify({ error: 'Messages are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     let fileContext = '';
-    if (file && file.data) {
+    const fileObj = file as { data?: string; name?: string } | null;
+    if (fileObj?.data) {
       try {
-        const base64Data = file.data.split(',')[1];
+        const base64Data = fileObj.data.split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
         const workbook = XLSX.read(buffer, { type: 'buffer' });
         
@@ -30,7 +57,7 @@ export async function POST(req: Request) {
         });
         
         if (fileContext) {
-          fileContext = `User has uploaded a file named "${file.name}". Here is the content of the file to help you answer their questions:\n${fileContext}\n\nPlease use this data to perform any requested calculations or analysis.`;
+          fileContext = `User has uploaded a file named "${fileObj.name ?? 'file'}". Here is the content of the file to help you answer their questions:\n${fileContext}\n\nPlease use this data to perform any requested calculations or analysis.`;
         }
       } catch (fileError) {
         console.error('Error parsing file:', fileError);
@@ -42,6 +69,7 @@ export async function POST(req: Request) {
       system: `${SYSTEM_PROMPT}${fileContext ? `\n\nATTACHED FILE CONTEXT:\n${fileContext}` : ''}`,
       messages,
       tools: tools as any,
+      maxToolRoundtrips: 5,
     });
 
     return result.toDataStreamResponse();

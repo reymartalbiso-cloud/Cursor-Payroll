@@ -3,11 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from 'ai/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Minus, Bot, Loader2, Paperclip, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { X, Send, Minus, Bot, Loader2, Paperclip, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { ChatMessage } from './chat-message';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export function ChatWidget() {
@@ -15,9 +16,10 @@ export function ChatWidget() {
   const [selectedFile, setSelectedFile] = useState<{ name: string; type: string; data: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const { messages, input = '', setInput, handleInputChange, handleSubmit, isLoading, append } = useChat({
-    api: '/api/chat',
+    api: typeof window !== 'undefined' ? `${window.location.origin}/api/chat` : '/api/chat',
     initialMessages: [
       {
         id: 'welcome',
@@ -28,23 +30,23 @@ export function ChatWidget() {
     onFinish: () => {
       setSelectedFile(null);
     },
-    onError: async (error) => {
+    onError: (error) => {
       console.error('Chat Widget Error:', error);
-      let errorMessage = 'Sorry, I encountered an error. Please try again or check your connection.';
-      
-      try {
-        // In AI SDK v3.4+, the error message might be in the error object itself
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        } else if (typeof error === 'string') {
-          errorMessage = error;
-        }
-      } catch (e) {
-        console.error('Failed to parse error message:', e);
+      let message = 'Sorry, I encountered an error. Please try again.';
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'string') {
+        message = error;
       }
-      
-      alert(errorMessage);
-    }
+      if (message === 'Failed to fetch') {
+        message = 'Could not connect to the AI service. Ensure the server is running and OPENROUTER_API_KEY is set in .env.';
+      }
+      toast({
+        title: 'Chat Error',
+        description: message,
+        variant: 'destructive',
+      });
+    },
   });
 
   // Auto-scroll to bottom of chat
@@ -59,7 +61,11 @@ export function ChatWidget() {
     if (!file) return;
 
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls') && !file.name.endsWith('.csv')) {
-      alert('Please upload an Excel or CSV file.');
+      toast({
+        title: 'Invalid file',
+        description: 'Please upload an Excel (.xlsx, .xls) or CSV file.',
+        variant: 'destructive',
+      });
       return;
     }
 
