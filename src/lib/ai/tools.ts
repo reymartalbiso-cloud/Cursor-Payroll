@@ -650,4 +650,289 @@ export const aiTools = {
       return { year, month, summary: summary.filter((s: any) => s.hasData) };
     },
   }),
+
+  // ─── LIFESCAN INTEGRATION ─────────────────────────────────────────────────
+
+  importFromLifeScan: tool({
+    description: 'Import attendance data from the LifeScan app into a payroll run. This fetches DTR (Daily Time Record) data from the LifeScan API for the payroll run\'s cutoff period and generates payslips. A payroll run must exist first. Use this when user asks to import from LifeScan.',
+    parameters: z.object({
+      payrollRunId: z.string().describe('ID of the payroll run to import into. Use getLatestPayrollRuns to find it.'),
+    }),
+    execute: async ({ payrollRunId }: any) => {
+      const { fetchLifeScanData } = await import('@/lib/lifescan');
+      const { accountingService } = await import('@/services/accountingService');
+      const {
+        isSunday, calculatePayslip, getEligibleWorkdays,
+        calculateAttendanceSummary,
+      } = await import('@/lib/payroll-calculator');
+      const { generateReferenceNo } = await import('@/lib/utils');
+
+      if (!accountingService.isConfigured()) {
+        return { success: false, error: 'LifeScan API is not configured. Set LIFESCAN_API_URL and LIFESCAN_API_KEY in environment variables.' };
+      }
+
+      const payrollRun = await prisma.payrollRun.findUnique({ where: { id: payrollRunId } });
+      if (!payrollRun) return { success: false, error: 'Payroll run not found' };
+      if (payrollRun.status === 'FINALIZED') return { success: false, error: 'Cannot import into a finalized payroll run. Unlock it first.' };
+
+      const startStr = new Date(payrollRun.cutoffStart).toISOString().split('T')[0];
+      const endStr = new Date(payrollRun.cutoffEnd).toISOString().split('T')[0];
+
+      const records = await fetchLifeScanData({ start_date: startStr, end_date: endStr });
+
+      if (records.length === 0) {
+        return { success: false, error: `No LifeScan attendance records found for period ${startStr} to ${endStr}.` };
+      }
+
+      const processRecord = (record: any) => {
+        const dateStr = record.created_at.split('T')[0];
+        const date = new Date(dateStr);
+        if (isSunday(date)) return null;
+
+        let timeInStr = record.timeinmorning ? new Date(record.timeinmorning).toLocaleTimeString('en-US', { hour12: false }) : null;
+        let timeOutStr = record.timeoutafternoon ? new Date(record.timeoutafternoon).toLocaleTimeString('en-US', { hour12: false }) : null;
+        if (!timeInStr && record.created_at) {
+          timeInStr = new Date(record.created_at).toLocaleTimeString('en-US', { hour12: false });
+        }
+
+        let minutesLate = 0, undertimeMinutes = 0, overtimeHours = 0, hoursWorked = 0;
+
+        if (timeInStr && timeOutStr) {
+          const timeInDate = new Date(`2000-01-01T${timeInStr}`);
+          const timeOutDate = new Date(`2000-01-01T${timeOutStr}`);
+          const splitTime = new Date('2000-01-01T08:10:00');
+
+          let shiftStart: Date, shiftEnd: Date;
+          const breakHours = 1;
+
+          if (timeInDate <= splitTime) {
+            shiftStart = new Date('2000-01-01T08:00:00');
+            shiftEnd = new Date('2000-01-01T17:00:00');
+          } else {
+            shiftStart = new Date('2000-01-01T09:00:00');
+            shiftEnd = new Date('2000-01-01T18:00:00');
+          }
+
+          if (timeInDate > shiftStart) {
+            if (timeInDate > splitTime) {
+              const grace9 = new Date('2000-01-01T09:05:00');
+              if (timeInDate > grace9) {
+                minutesLate = Math.round((timeInDate.getTime() - new Date('2000-01-01T09:00:00').getTime()) / 60000);
+              }
+            } else {
+              minutesLate = Math.round((timeInDate.getTime() - shiftStart.getTime()) / 60000);
+            }
+          }
+
+          if (timeOutDate < shiftEnd) {
+            undertimeMinutes = Math.round((shiftEnd.getTime() - timeOutDate.getTime()) / 60000);
+          }
+
+          const otThreshold = new Date(shiftEnd.getTime() + 60 * 60 * 1000);
+          if (timeOutDate >= otThreshold) {
+            overtimeHours = (timeOutDate.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60);
+          }
+
+          const diffMs = timeOutDate.getTime() - timeInDate.getTime();
+          hoursWorked = (diffMs / (1000 * 60 * 60)) - breakHours;
+          if (hoursWorked < 0) hoursWorked = 0;
+        }
+
+        return {
+          employeeId: record.profiles?.employee_id || null,
+          employeeName: record.profiles ? `${record.profiles.last_name}, ${record.profiles.first_name}` : 'Unknown',
+          date, timeIn: timeInStr, timeOut: timeOutStr,
+          hoursWorked, minutesLate, undertimeMinutes,
+          isAbsent: record.status === 'absent',
+          overtimeHours, remarks: 'Imported from LifeScan',
+          rawData: record,
+        };
+      };
+
+      const processedRows = records.map(processRecord).filter(Boolean);
+
+      const employees = await prisma.employee.findMany({ where: { deletedAt: null } });
+      const employeeByNo = new Map(employees.map((e: any) => [e.employeeNo.toLowerCase(), e]));
+
+      const settings = await prisma.setting.findMany();
+      const settingsMap = Object.fromEntries(settings.map((s: any) => [s.key, s.value]));
+      const payrollSettings = {
+        govDeductionMode: ((payrollRun as any).govDeductionMode || settingsMap.gov_deduction_mode || 'fixed_per_cutoff') as any,
+        standardDailyHours: (payrollRun as any).standardDailyHours || parseInt(settingsMap.standard_daily_hours || '8'),
+      };
+
+      const holidays = await prisma.holiday.findMany({ where: { year: payrollRun.year } });
+      const holidayData = holidays.map((h: any) => ({ date: h.date, type: h.type, name: h.name }));
+
+      await prisma.timesheetEntry.deleteMany({ where: { payrollRunId } });
+
+      const employeeEntries = new Map<string, any[]>();
+      const importedEmployeeIds = new Set<string>();
+      const unrecognized: string[] = [];
+
+      for (const row of processedRows as any[]) {
+        if (!row.employeeId) continue;
+        const employee = employeeByNo.get(String(row.employeeId).toLowerCase().trim());
+        if (!employee || employee.status !== 'ACTIVE') {
+          if (!unrecognized.includes(String(row.employeeId))) unrecognized.push(String(row.employeeId));
+          continue;
+        }
+        const entries = employeeEntries.get(employee.id) || [];
+        entries.push(row);
+        employeeEntries.set(employee.id, entries);
+      }
+
+      const imported: string[] = [];
+
+      for (const [employeeId, rows] of Array.from(employeeEntries.entries())) {
+        const employee = employees.find((e: any) => e.id === employeeId)!;
+        importedEmployeeIds.add(employeeId);
+
+        for (const row of rows) {
+          await prisma.timesheetEntry.upsert({
+            where: { payrollRunId_employeeId_date: { payrollRunId, employeeId, date: row.date } },
+            create: {
+              payrollRunId, employeeId, date: row.date,
+              timeIn: row.timeIn, timeOut: row.timeOut,
+              hoursWorked: row.hoursWorked, minutesLate: row.minutesLate,
+              undertimeMinutes: row.undertimeMinutes, isAbsent: row.isAbsent,
+              overtimeHours: row.overtimeHours, remarks: row.remarks,
+              rawData: row.rawData,
+            },
+            update: {
+              timeIn: row.timeIn, timeOut: row.timeOut,
+              hoursWorked: row.hoursWorked, minutesLate: row.minutesLate,
+              undertimeMinutes: row.undertimeMinutes, isAbsent: row.isAbsent,
+              overtimeHours: row.overtimeHours, remarks: row.remarks,
+              rawData: row.rawData,
+            },
+          });
+        }
+
+        const timesheetEntries = await prisma.timesheetEntry.findMany({ where: { payrollRunId, employeeId } });
+
+        const getOtherCutoff = async () => {
+          const otherType = payrollRun.cutoffType === 'FIRST_HALF' ? 'SECOND_HALF' : 'FIRST_HALF';
+          const other = await prisma.payrollRun.findFirst({
+            where: { year: payrollRun.year, month: payrollRun.month, cutoffType: otherType },
+          });
+          if (!other) return undefined;
+          const otherEntries = await prisma.timesheetEntry.findMany({
+            where: { payrollRunId: other.id, employeeId },
+          });
+          if (otherEntries.length === 0) return undefined;
+          return calculateAttendanceSummary(otherEntries, getEligibleWorkdays(payrollRun.year, payrollRun.month, otherType as any));
+        };
+
+        const otherCutoffAttendance = await getOtherCutoff();
+
+        const calculation = calculatePayslip(
+          employee as any, timesheetEntries as any,
+          payrollRun.year, payrollRun.month, payrollRun.cutoffType as any,
+          parseFloat(String(employee.defaultKpi || 0)),
+          payrollSettings, {}, otherCutoffAttendance, holidayData as any
+        );
+
+        await prisma.payslip.upsert({
+          where: { payrollRunId_employeeId: { payrollRunId, employeeId } },
+          create: {
+            referenceNo: generateReferenceNo('PS'),
+            payrollRunId, employeeId,
+            employeeName: `${employee.lastName}, ${employee.firstName} ${employee.middleName || ''}`.trim(),
+            employeeNo: employee.employeeNo,
+            department: employee.department, position: employee.position,
+            dailyRate: employee.dailyRate,
+            eligibleWorkdays: calculation.attendance.eligibleWorkdays,
+            presentDays: calculation.attendance.presentDays,
+            absentDays: calculation.attendance.absentDays,
+            totalLateMinutes: calculation.attendance.totalLateMinutes,
+            totalUndertimeMinutes: calculation.attendance.totalUndertimeMinutes,
+            totalOvertimeHours: calculation.attendance.totalOvertimeHours,
+            lateCount: calculation.attendance.lateCount,
+            absentCount: calculation.attendance.absentCount,
+            monthlyLateCount: calculation.monthlyAttendance?.lateCount ?? 0,
+            monthlyAbsentCount: calculation.monthlyAttendance?.absentCount ?? 0,
+            kpiVoided: calculation.kpiVoided,
+            kpiVoidReason: calculation.kpiVoidReason ?? null,
+            basicPay: calculation.earnings.basicPay,
+            overtimePay: calculation.earnings.overtimePay,
+            holidayPay: calculation.earnings.holidayPay,
+            cola: calculation.earnings.cola,
+            kpi: calculation.earnings.kpi,
+            otherEarnings: calculation.earnings.otherEarnings,
+            grossPay: calculation.earnings.grossPay,
+            absenceDeduction: calculation.deductions.absenceDeduction,
+            lateDeduction: calculation.deductions.lateDeduction,
+            undertimeDeduction: calculation.deductions.undertimeDeduction,
+            sssDeduction: calculation.deductions.sssDeduction,
+            philhealthDeduction: calculation.deductions.philhealthDeduction,
+            pagibigDeduction: calculation.deductions.pagibigDeduction,
+            sssLoanDeduction: calculation.deductions.sssLoanDeduction,
+            pagibigLoanDeduction: calculation.deductions.pagibigLoanDeduction,
+            otherLoanDeduction: calculation.deductions.otherLoanDeduction,
+            cashAdvanceDeduction: calculation.deductions.cashAdvanceDeduction,
+            totalDeductions: calculation.deductions.totalDeductions,
+            netPay: calculation.netPay,
+            netPayInWords: calculation.netPayInWords,
+            govDeductionsApplied: calculation.govDeductionsApplied,
+            computationBreakdown: calculation.computationBreakdown as any,
+            isMissing: false,
+          },
+          update: {
+            presentDays: calculation.attendance.presentDays,
+            absentDays: calculation.attendance.absentDays,
+            totalLateMinutes: calculation.attendance.totalLateMinutes,
+            totalUndertimeMinutes: calculation.attendance.totalUndertimeMinutes,
+            totalOvertimeHours: calculation.attendance.totalOvertimeHours,
+            lateCount: calculation.attendance.lateCount,
+            absentCount: calculation.attendance.absentCount,
+            kpiVoided: calculation.kpiVoided,
+            basicPay: calculation.earnings.basicPay,
+            grossPay: calculation.earnings.grossPay,
+            totalDeductions: calculation.deductions.totalDeductions,
+            netPay: calculation.netPay,
+            govDeductionsApplied: calculation.govDeductionsApplied,
+            computationBreakdown: calculation.computationBreakdown as any,
+            isMissing: false,
+          },
+        });
+
+        imported.push(`${employee.firstName} ${employee.lastName}`);
+      }
+
+      await prisma.payslip.updateMany({
+        where: { payrollRunId, employeeId: { notIn: Array.from(importedEmployeeIds) } },
+        data: { isMissing: true },
+      });
+
+      return {
+        success: true,
+        payrollRunName: payrollRun.name,
+        period: `${startStr} to ${endStr}`,
+        lifeScanRecords: records.length,
+        importedEmployees: imported.length,
+        importedNames: imported,
+        unrecognizedIds: unrecognized.length > 0 ? unrecognized : undefined,
+      };
+    },
+  }),
+
+  checkLifeScanStatus: tool({
+    description: 'Check if the LifeScan API is configured and connected. Use this to verify before importing.',
+    parameters: z.object({}),
+    execute: async () => {
+      const { accountingService } = await import('@/services/accountingService');
+
+      if (!accountingService.isConfigured()) {
+        return { configured: false, message: 'LifeScan API is not configured. LIFESCAN_API_URL and LIFESCAN_API_KEY are missing.' };
+      }
+
+      try {
+        const profiles = await accountingService.fetchUsersWithDTR({});
+        return { configured: true, connected: true, employeeCount: profiles.length };
+      } catch (error: any) {
+        return { configured: true, connected: false, error: error.message || 'Failed to connect to LifeScan API' };
+      }
+    },
+  }),
 };
