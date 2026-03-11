@@ -1,5 +1,5 @@
 import { getAgentModel, SYSTEM_PROMPT, tools } from '@/lib/ai/agent-runtime';
-import { streamText } from 'ai';
+import { streamText, type CoreMessage } from 'ai';
 import * as XLSX from 'xlsx';
 
 // Allow streaming responses up to 30 seconds
@@ -19,11 +19,11 @@ export async function POST(req: Request) {
       );
     }
 
-    let messages: unknown[] | undefined;
+    let messages: CoreMessage[];
     let file: unknown = null;
     try {
       const body = await req.json();
-      messages = body?.messages ?? [];
+      messages = (body?.messages ?? []) as CoreMessage[];
       file = body?.file ?? null;
     } catch {
       return new Response(
