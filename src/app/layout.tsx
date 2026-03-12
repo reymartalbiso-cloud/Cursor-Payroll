@@ -26,8 +26,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <VideoBackground src="https://www.pexels.com/download/video/10922866/" opacity={0.5} />
-          {children}
+          <VideoBackground src="https://www.pexels.com/download/video/10922866/" opacity={0.2} />
+          <div className="relative z-0 min-h-screen">
+            {children}
+          </div>
           <Toaster />
         </ThemeProvider>
       </body>

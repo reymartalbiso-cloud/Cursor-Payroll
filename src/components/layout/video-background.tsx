@@ -14,13 +14,17 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
     className = ""
 }) => {
     return (
-        <div className={`fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-white dark:bg-[hsl(160,20%,5%)] ${className}`}>
+        <div
+            className={`fixed inset-0 overflow-hidden bg-white dark:bg-[hsl(160,20%,5%)] ${className}`}
+            style={{ zIndex: -1, pointerEvents: 'none' }}
+            aria-hidden
+        >
             <video
                 autoPlay
                 loop
                 muted
                 playsInline
-                className="absolute min-w-full min-h-full object-cover"
+                className="absolute min-w-full min-h-full object-cover pointer-events-none"
                 style={{ opacity }}
             >
                 <source src={src} type="video/mp4" />
