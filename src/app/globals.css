@@ -61,7 +61,6 @@
     --input: 160 12% 22%;
     --ring: 160 80% 35%;
 
-    --dark-serpent: 160 15% 80%;
     --castleton-green: 160 80% 35%;
   }
 
@@ -144,6 +143,36 @@
   -webkit-backdrop-filter: blur(16px) !important;
   border: 1px solid hsl(var(--border) / 0.2) !important;
 }
+
+/* Dark mode overrides for hardcoded Tailwind color-50/100 backgrounds */
+.dark .bg-green-50   { background-color: hsl(160 80% 35% / 0.08) !important; }
+.dark .bg-amber-50   { background-color: hsl(35 100% 64% / 0.08) !important; }
+.dark .bg-red-50     { background-color: hsl(0 70% 50% / 0.08) !important; }
+.dark .bg-yellow-50  { background-color: hsl(45 80% 50% / 0.08) !important; }
+.dark .bg-orange-50  { background-color: hsl(25 80% 50% / 0.08) !important; }
+.dark .bg-purple-50  { background-color: hsl(270 60% 50% / 0.08) !important; }
+.dark .bg-blue-50    { background-color: hsl(210 60% 50% / 0.08) !important; }
+.dark .bg-blue-100   { background-color: hsl(210 60% 50% / 0.12) !important; }
+.dark .bg-amber-100  { background-color: hsl(35 100% 64% / 0.12) !important; }
+.dark .bg-red-100    { background-color: hsl(0 70% 50% / 0.12) !important; }
+.dark .bg-purple-100 { background-color: hsl(270 60% 50% / 0.12) !important; }
+
+/* Dark mode overrides for hardcoded borders */
+.dark .border-green-200  { border-color: hsl(160 50% 30% / 0.3) !important; }
+.dark .border-amber-200  { border-color: hsl(35 80% 50% / 0.3) !important; }
+.dark .border-red-200    { border-color: hsl(0 60% 40% / 0.3) !important; }
+.dark .border-yellow-300 { border-color: hsl(45 60% 40% / 0.3) !important; }
+
+/* Dark mode overrides for hardcoded text colors */
+.dark .text-green-700,
+.dark .text-green-800  { color: hsl(160 60% 55%) !important; }
+.dark .text-amber-700,
+.dark .text-amber-800  { color: hsl(35 90% 65%) !important; }
+.dark .text-red-700,
+.dark .text-red-800    { color: hsl(0 70% 60%) !important; }
+.dark .text-yellow-700 { color: hsl(45 80% 60%) !important; }
+.dark .text-orange-600 { color: hsl(25 80% 60%) !important; }
+.dark .text-purple-600 { color: hsl(270 60% 65%) !important; }
 
 /* Fade-in animation */
 @keyframes fadeIn {

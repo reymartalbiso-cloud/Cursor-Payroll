@@ -526,7 +526,7 @@ export default function PayrollRunsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="p-3 bg-saffron/10 rounded-lg text-sm text-dark-serpent/80">
+            <div className="p-3 bg-saffron/10 rounded-lg text-sm text-dark-serpent/80 dark:text-foreground/70">
               <strong>Note:</strong>
               <ul className="list-disc pl-5 mt-1 space-y-1">
                 <li>1st Half: 1st - 15th (Pay Date: 15th)</li>

@@ -551,18 +551,18 @@ export default function PayslipDetailPage() {
                 <p className="font-medium">Overtime</p>
                 <p className="text-muted-foreground">{payslip.computationBreakdown?.overtimeFormula}</p>
               </div>
-              <div className="p-3 bg-green-50 rounded">
+              <div className="p-3 bg-green-50 dark:bg-castleton-green/10 rounded">
                 <p className="font-medium text-castleton-green">Holiday Pay & Leaves</p>
-                <p className="text-dark-serpent/80">{payslip.computationBreakdown?.holidayNote}</p>
+                <p className="text-dark-serpent/80 dark:text-foreground/70">{payslip.computationBreakdown?.holidayNote}</p>
               </div>
               <div className="p-3 bg-saffron/10 rounded">
                 <p className="font-medium text-castleton-green">KPI Status</p>
-                <p className="text-dark-serpent/80">
+                <p className="text-dark-serpent/80 dark:text-foreground/70">
                   {payslip.computationBreakdown?.kpiNote}</p>
               </div>
-              <div className="p-3 bg-amber-50 rounded">
-                <p className="font-medium text-amber-800">Government Deductions</p>
-                <p className="text-amber-700">{payslip.computationBreakdown?.govDeductionNote}</p>
+              <div className="p-3 bg-amber-50 dark:bg-saffron/10 rounded">
+                <p className="font-medium text-amber-800 dark:text-saffron">Government Deductions</p>
+                <p className="text-amber-700 dark:text-foreground/70">{payslip.computationBreakdown?.govDeductionNote}</p>
               </div>
             </div>
           </CardContent>

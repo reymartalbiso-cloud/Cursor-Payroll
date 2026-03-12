@@ -347,9 +347,9 @@ export default function SettingsPage() {
               cutoff period. The 1st-15th cutoff will have zero government deductions.
             </p>
           </div>
-          <div className="p-4 bg-green-50 rounded-lg">
+          <div className="p-4 bg-green-50 dark:bg-castleton-green/10 rounded-lg">
             <h4 className="font-semibold text-castleton-green">Cutoff Periods</h4>
-            <ul className="text-sm text-dark-serpent/80 mt-1 list-disc list-inside">
+            <ul className="text-sm text-dark-serpent/80 dark:text-foreground/70 mt-1 list-disc list-inside">
               <li>First Half: 1st - 15th of the month</li>
               <li>Second Half: 16th - end of month (28/29/30/31 depending on month)</li>
             </ul>

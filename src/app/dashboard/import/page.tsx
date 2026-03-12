@@ -502,7 +502,7 @@ export default function ImportTimesheetPage() {
               {importMode === 'lifescan' && (
                 <div className="p-4 bg-castleton-green/10 rounded-lg border border-castleton-green/20">
                   <h4 className="font-semibold text-castleton-green mb-2">Timesheet Rules Applied</h4>
-                  <ul className="text-sm space-y-1 text-dark-serpent/80">
+                  <ul className="text-sm space-y-1 text-dark-serpent/80 dark:text-foreground/70">
                     <li>Will fetch all attendance records for the selected payroll period.</li>
                     <li>Matches employees by <strong>Employee ID</strong>.</li>
                     <li>Automatically calculates Late, Undertime, and OT based on shift time (8-5 vs 9-6).</li>
