@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-
 import { usePathname } from 'next/navigation';
 import {
   Users,
@@ -25,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
 import { useState } from 'react';
 import { ThemeToggle } from './theme-toggle';
-
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, roles: ['ADMIN', 'PAYROLL_ADMIN'] },
@@ -56,26 +54,30 @@ export function Sidebar() {
     (item) => user && item.roles.includes(user.role)
   );
 
+  const isNavActive = (href: string) => {
+    if (href === '/dashboard') return pathname === '/dashboard';
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen bg-dark-serpent text-white transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
+        'fixed left-0 top-0 z-40 h-screen bg-dark-serpent text-white transition-all duration-300 shadow-xl',
+        collapsed ? 'w-[72px]' : 'w-64'
       )}
     >
-      <div className="flex h-full flex-col text-[#FFFFF0]">
+      <div className="flex h-full flex-col">
 
         {/* Logo Section */}
         <div className={cn(
-          'flex flex-col border-b border-castleton-green/30 px-3',
-          collapsed ? 'h-20 items-center justify-center' : 'pt-8 pb-3 space-y-4'
+          'flex flex-col border-b border-white/[0.06] px-3',
+          collapsed ? 'h-20 items-center justify-center' : 'pt-7 pb-4 space-y-3'
         )}>
-          <div className={cn("flex flex-col items-center w-full", collapsed ? "justify-center" : "space-y-4")}>
-            <div className={cn("flex items-center w-full", collapsed ? "justify-center" : "justify-between")}>
-              {/* Pill-shaped logo container */}
+          <div className={cn('flex flex-col items-center w-full', collapsed ? 'justify-center' : 'space-y-3')}>
+            <div className={cn('flex items-center w-full', collapsed ? 'justify-center' : 'justify-between')}>
               <div className={cn(
-                "bg-white rounded-full flex items-center justify-center transition-all duration-300 shadow-lg",
-                collapsed ? "w-10 h-10 p-1.5" : "w-full h-12 px-6"
+                'bg-white rounded-full flex items-center justify-center transition-all duration-300',
+                collapsed ? 'w-10 h-10 p-1.5' : 'w-full h-11 px-5'
               )}>
                 <div className="relative w-full h-full">
                   <Image
@@ -92,97 +94,97 @@ export function Sidebar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setCollapsed(!collapsed)}
-                  className="absolute right-2 top-4 text-white/60 hover:text-white hover:bg-castleton-green/20"
+                  onClick={() => setCollapsed(true)}
+                  className="absolute right-2 top-3 h-7 w-7 text-white/40 hover:text-white hover:bg-white/10 rounded-lg"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
               )}
             </div>
 
             {!collapsed && (
-              <div className="flex flex-col items-center w-full pt-2">
-                <p className="text-[10px] uppercase font-bold text-saffron/80 tracking-widest mb-[14px]">
-                  Powered by: Lifewood PH
+              <div className="flex flex-col items-center w-full pt-1">
+                <span className="text-[22px] font-black text-saffron tracking-[0.15em] uppercase leading-none">
+                  Payroll
+                </span>
+                <p className="text-[9px] uppercase font-medium text-white/30 tracking-widest mt-1.5">
+                  Lifewood PH
                 </p>
-                <span className="text-[28px] font-black text-saffron tracking-[0.2em] uppercase leading-none">Payroll</span>
-                <div className="h-0.5 w-16 bg-saffron/40 rounded-full mt-3" />
               </div>
             )}
-
           </div>
 
           {collapsed && (
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setCollapsed(!collapsed)}
-              className="mt-2 text-white/60 hover:text-white hover:bg-castleton-green/20"
+              onClick={() => setCollapsed(false)}
+              className="mt-1 h-7 w-7 text-white/40 hover:text-white hover:bg-white/10 rounded-lg"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </Button>
           )}
         </div>
 
-
-        {/* Navigation Area - Scrollable */}
-        <nav className="flex-1 space-y-1 p-2 overflow-y-auto scrollbar-hide">
+        {/* Navigation */}
+        <nav className="flex-1 py-3 px-2 overflow-y-auto scrollbar-hide space-y-0.5">
           {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = isNavActive(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors',
-                  isActive
-                    ? 'bg-castleton-green text-white shadow-sm'
-                    : 'text-[#FFFFF0]/70 hover:bg-castleton-green/40 hover:text-[#FFFFF0]',
-                  collapsed && 'justify-center'
+                  'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-200',
+                  active
+                    ? 'bg-castleton-green text-white shadow-md shadow-castleton-green/30'
+                    : 'text-white/50 hover:text-white/90 hover:bg-white/[0.06]',
+                  collapsed && 'justify-center px-0'
                 )}
                 title={collapsed ? item.label : undefined}
               >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-saffron rounded-r-full" />
+                )}
+                <item.icon className={cn(
+                  'h-[18px] w-[18px] flex-shrink-0 transition-colors',
+                  active ? 'text-white' : 'text-white/40 group-hover:text-white/80'
+                )} />
                 {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
         </nav>
 
-
-
-        {/* User Section - Sticky Footer */}
-        <div className="mt-auto border-t border-castleton-green/30 bg-dark-serpent/80 backdrop-blur-md p-4 text-[#FFFFF0]">
+        {/* User Footer */}
+        <div className="border-t border-white/[0.06] p-3">
           {!collapsed && user && (
-            <div className="mb-4">
-              <p className="text-sm font-bold truncate">{user.name}</p>
-              <p className="text-[10px] text-[#FFFFF0]/60 truncate uppercase tracking-tighter">{user.email}</p>
-              <span className="mt-2 inline-block rounded-full bg-saffron/20 px-2 py-0.5 text-[10px] font-bold text-saffron uppercase border border-saffron/30">
+            <div className="mb-3 px-1">
+              <p className="text-sm font-semibold truncate text-white/90">{user.name}</p>
+              <p className="text-[10px] text-white/35 truncate mt-0.5">{user.email}</p>
+              <span className="mt-2 inline-block rounded-md bg-saffron/15 px-2 py-0.5 text-[10px] font-semibold text-saffron uppercase tracking-wide">
                 {user.role.replace('_', ' ')}
               </span>
             </div>
           )}
-          <div className={cn("flex gap-2", collapsed ? "flex-col items-center" : "items-center")}>
+          <div className={cn('flex gap-1.5', collapsed ? 'flex-col items-center' : 'items-center')}>
             <Button
               variant="ghost"
               size={collapsed ? 'icon' : 'sm'}
               onClick={handleLogout}
               className={cn(
-                'text-[#FFFFF0] hover:bg-red-500/20 hover:text-red-400 transition-all duration-300',
-                !collapsed && 'flex-1 justify-center gap-2 font-bold uppercase text-[11px] border border-white/10'
+                'text-white/50 hover:bg-red-500/15 hover:text-red-400 transition-all duration-200 rounded-lg',
+                !collapsed && 'flex-1 justify-center gap-2 text-[11px] font-semibold border border-white/[0.06]',
+                collapsed && 'h-8 w-8'
               )}
               title={collapsed ? 'Logout' : undefined}
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-3.5 w-3.5" />
               {!collapsed && <span>Logout</span>}
             </Button>
-            <div className={cn(collapsed ? "mt-2" : "")}>
-              <ThemeToggle collapsed={true} />
-            </div>
+            <ThemeToggle collapsed={true} />
           </div>
-
         </div>
-
       </div>
     </aside>
   );

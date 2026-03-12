@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/auth-store';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
-
+import { Lock, Mail } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -56,84 +56,100 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center transition-colors duration-300">
-
-      <div className="absolute top-4 right-4">
+    <div className="min-h-screen flex items-center justify-center transition-colors duration-300 relative">
+      <div className="absolute top-5 right-5 z-10">
         <ThemeToggle collapsed={true} />
       </div>
 
-      <Card className="w-full max-w-md mx-4 shadow-2xl border-none bg-white/80 dark:bg-white/5 backdrop-blur-md overflow-hidden">
-        <CardHeader className="space-y-6 pb-6 pt-10 px-8">
-          <div className="flex justify-center mb-2 transition-all duration-500 hover:scale-[1.05]">
-            <div className="relative w-64 h-20 md:w-72 md:h-24">
-              <Image
-                src="/lifewood-logo.png"
-                alt="Lifewood Logo"
-                fill
-                style={{ objectFit: 'contain' }}
-                priority
-              />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <CardTitle className="text-xl font-bold text-center tracking-tight text-dark-serpent dark:text-saffron">
-              Payroll Management System
-            </CardTitle>
-            <CardDescription className="text-center text-muted-foreground/80 font-medium">
-              Authorized Personnel Access Only
-            </CardDescription>
-          </div>
-        </CardHeader>
+      <div className="w-full max-w-[440px] mx-4 animate-fade-in-up">
+        <Card className="shadow-2xl border-none bg-white/80 dark:bg-white/5 backdrop-blur-xl overflow-hidden relative">
+          {/* Top accent bar */}
+          <div className="h-1 w-full bg-gradient-to-r from-castleton-green via-castleton-green/70 to-saffron" />
 
-        <CardContent className="pb-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@lifewood.com"
-                className="h-12 border-slate-200 dark:border-white/10 dark:bg-white/5 focus-visible:ring-castleton-green rounded-xl transition-all"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+          <CardHeader className="pb-2 pt-10 px-8">
+            <div className="flex justify-center mb-6">
+              <div className="relative w-64 h-20 md:w-72 md:h-24 transition-all duration-500 hover:scale-[1.03]">
+                <Image
+                  src="/lifewood-logo.png"
+                  alt="Lifewood Logo"
+                  fill
+                  style={{ objectFit: 'contain' }}
+                  priority
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                className="h-12 border-slate-200 dark:border-white/10 dark:bg-white/5 focus-visible:ring-castleton-green rounded-xl transition-all"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+            <div className="text-center space-y-1.5">
+              <h1 className="text-2xl font-bold tracking-tight text-dark-serpent dark:text-saffron">
+                Payroll Management System
+              </h1>
+              <p className="text-sm text-muted-foreground/80 font-medium">
+                Sign in to access your account
+              </p>
             </div>
-            <Button
-              type="submit"
-              className="w-full h-12 bg-castleton-green hover:bg-castleton-green/90 text-white font-bold text-base transition-all duration-300 shadow-lg rounded-xl"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Verifying...
-                </span>
-              ) : (
-                'SIGN IN'
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </CardHeader>
 
-      <div className="mt-12 text-center animate-fade-in opacity-80">
-        <p className="text-[20px] uppercase font-black tracking-tight text-dark-serpent/40 dark:text-white/30">
-          Powered by: <span className="text-castleton-green dark:text-saffron">Lifewood PH</span>
+          <CardContent className="px-8 pb-10 pt-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@lifewood.com"
+                    className="h-12 pl-10 border-border/60 dark:border-white/10 dark:bg-white/5 focus-visible:ring-castleton-green/40 focus-visible:border-castleton-green rounded-xl transition-all"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    className="h-12 pl-10 border-border/60 dark:border-white/10 dark:bg-white/5 focus-visible:ring-castleton-green/40 focus-visible:border-castleton-green rounded-xl transition-all"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-castleton-green hover:bg-castleton-green/90 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-castleton-green/20 hover:shadow-xl hover:shadow-castleton-green/30 rounded-xl"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Signing in...
+                    </span>
+                  ) : (
+                    'Sign In'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <p className="mt-8 text-center text-xs text-muted-foreground/60 tracking-wide">
+          Powered by <span className="font-semibold text-castleton-green dark:text-saffron">Lifewood PH</span>
         </p>
       </div>
     </div>

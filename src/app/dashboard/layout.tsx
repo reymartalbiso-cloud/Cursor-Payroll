@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Sidebar } from '@/components/layout/sidebar';
 import { ChatWidget } from '@/components/ui/chat-widget';
 import { useAuthStore } from '@/stores/auth-store';
@@ -42,10 +43,19 @@ export default function DashboardLayout({
 
   if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-5 animate-fade-in">
+          <div className="relative w-40 h-14">
+            <Image
+              src="/lifewood-logo.png"
+              alt="Lifewood"
+              fill
+              style={{ objectFit: 'contain' }}
+              priority
+            />
+          </div>
+          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-castleton-green/20 border-t-castleton-green" />
+          <p className="text-xs text-muted-foreground tracking-wide">Loading your workspace...</p>
         </div>
       </div>
     );
@@ -56,7 +66,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-sea-salt/60">
+    <div className="min-h-screen bg-background">
       <Sidebar />
       <main className="ml-64 min-h-screen p-6 transition-all duration-300">
         {children}
