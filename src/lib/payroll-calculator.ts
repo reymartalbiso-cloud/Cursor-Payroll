@@ -225,23 +225,29 @@ export function calculateAttendanceSummary(
     // Skip Sundays in the calculation
     if (isSunday(entryDate)) continue;
 
+    let countedAsPresent = false;
+
     // Check if on leave (VL, SL, Offset, or Holiday from status) - these are PAID days
     // Status column takes priority over Holidays table
     if (entry.isOnLeave) {
       if (entry.leaveType === 'VL') {
         vacationLeaveCount++;
         presentDays++;
+        countedAsPresent = true;
       } else if (entry.leaveType === 'SL') {
         sickLeaveCount++;
         presentDays++;
+        countedAsPresent = true;
       } else if (entry.leaveType === 'OFFSET') {
         offsetCount++;
         presentDays++;
+        countedAsPresent = true;
       } else if (entry.leaveType === 'REGULAR_HOLIDAY') {
         // Regular holiday from status column: 100% daily rate
         regularHolidayCount++;
         regularHolidayPay += dailyRate * HOLIDAY_PAY_RATES.REGULAR;
         presentDays++;
+        countedAsPresent = true;
       } else if (entry.leaveType === 'SPECIAL_HOLIDAY') {
         // Special holiday from status column: 30% of hours worked, capped at 8 hours
         // OT is calculated SEPARATELY and added to total OT hours
@@ -254,6 +260,7 @@ export function calculateAttendanceSummary(
         const hourlyRate = dailyRate / 8;
         specialHolidayPay += regularHours * hourlyRate * HOLIDAY_PAY_RATES.SPECIAL;
         presentDays++;
+        countedAsPresent = true;
 
         // Add OT hours from special holiday to total OT (OT is NOT included in 30% holiday pay)
         totalOvertimeHours += otHours;
@@ -271,7 +278,9 @@ export function calculateAttendanceSummary(
         absentCount++;
       }
     } else {
-      presentDays++;
+      if (!countedAsPresent) {
+        presentDays++;
+      }
     }
 
     // Use adjusted values if they exist, otherwise use calculated values
@@ -283,9 +292,15 @@ export function calculateAttendanceSummary(
       ? entry.adjustedUndertimeMinutes
       : (entry.undertimeMinutes || 0);
 
-    const effectiveOvertimeHours = entry.adjustedOvertimeHours !== null && entry.adjustedOvertimeHours !== undefined
+    let effectiveOvertimeHours = entry.adjustedOvertimeHours !== null && entry.adjustedOvertimeHours !== undefined
       ? parseDecimal(entry.adjustedOvertimeHours)
       : parseDecimal(entry.overtimeHours);
+
+    // For SPECIAL_HOLIDAY, OT hours were already added to totalOvertimeHours above
+    // so we skip adding them again here to avoid double-counting.
+    if (entry.leaveType === 'SPECIAL_HOLIDAY') {
+      effectiveOvertimeHours = 0;
+    }
 
     // Count late occurrences (any day with late minutes > 0)
     // Only count towards KPI voiding if NOT excused

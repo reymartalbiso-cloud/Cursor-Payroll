@@ -78,6 +78,7 @@ export default function PayrollRunDetailPage() {
   const [editingKpi, setEditingKpi] = useState<Record<string, string>>({});
   const [savingKpi, setSavingKpi] = useState<Record<string, boolean>>({});
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   const fetchPayrollRun = useCallback(async () => {
     setIsLoading(true);
@@ -276,6 +277,35 @@ export default function PayrollRunDetailPage() {
     }
   };
 
+  const handleRecalculatePayslips = async () => {
+    setIsRecalculating(true);
+    try {
+      const res = await fetch(`/api/payroll-runs/${id}/recalculate-payslips`, {
+        method: 'POST',
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to recalculate payslips');
+      }
+
+      toast({
+        title: 'Success',
+        description: data.message || 'Payslips recalculated',
+      });
+      fetchPayrollRun();
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to recalculate payslips',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
   if (isLoading || !payrollRun) {
     return (
       <div className="flex justify-center py-12">
@@ -411,6 +441,12 @@ export default function PayrollRunDetailPage() {
               <Button onClick={handleGeneratePayslips} disabled={isGenerating}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
                 {isGenerating ? 'Generating...' : 'Generate Payslips'}
+              </Button>
+            )}
+            {payrollRun._count.payslips > 0 && (
+              <Button variant="outline" onClick={handleRecalculatePayslips} disabled={isRecalculating}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRecalculating ? 'animate-spin' : ''}`} />
+                {isRecalculating ? 'Recalculating...' : 'Recalculate Payslips'}
               </Button>
             )}
             <Button asChild variant={payrollRun._count.payslips === 0 ? 'outline' : 'default'}>
