@@ -1020,7 +1020,7 @@ export const aiTools = {
     execute: async () => {
       const projects = await prisma.outsourceProject.findMany({
         orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { requests: true } } },
+        include: { _count: { select: { payrollRequests: true } } },
       });
       return projects;
     },
