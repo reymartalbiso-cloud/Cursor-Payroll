@@ -68,7 +68,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen">
       <Sidebar />
-      <main className="ml-64 min-h-screen p-6 transition-all duration-300">
+      <main className="ml-64 min-h-screen p-4 sm:p-6 transition-all duration-300 min-w-0 overflow-x-hidden">
         {children}
       </main>
       <ChatWidget />

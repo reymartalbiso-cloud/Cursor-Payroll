@@ -98,13 +98,12 @@ export default function AttendanceSummaryPage() {
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
     return sortOrder === 'asc'
-      ? <ArrowUp className="h-4 w-4 ml-1" />
-      : <ArrowDown className="h-4 w-4 ml-1" />;
+      ? <ArrowUp className="h-3.5 w-3.5 ml-1" />
+      : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
 
-  // Sort attendance data
   const sortedAttendance = [...attendance].sort((a, b) => {
     let comparison = 0;
     switch (sortField) {
@@ -132,11 +131,42 @@ export default function AttendanceSummaryPage() {
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
+  const summaryCards = [
+    {
+      label: 'Total Employees',
+      value: totals?.totalEmployees ?? 0,
+      sub: null,
+      icon: Users,
+      iconBg: 'bg-castleton-green/10 text-castleton-green',
+    },
+    {
+      label: 'Late Occurrences',
+      value: totals?.totalLateOccurrences ?? 0,
+      sub: `${totals?.totalLateMinutes ?? 0} mins total`,
+      icon: Clock,
+      iconBg: 'bg-amber-100 text-amber-600 dark:bg-amber-500/10',
+    },
+    {
+      label: 'Total Absences',
+      value: totals?.totalAbsences ?? 0,
+      sub: null,
+      icon: UserX,
+      iconBg: 'bg-red-100 text-red-600 dark:bg-red-500/10',
+    },
+    {
+      label: 'KPI Voided',
+      value: totals?.kpiVoidedCount ?? 0,
+      sub: 'employees',
+      icon: AlertTriangle,
+      iconBg: 'bg-purple-100 text-purple-600 dark:bg-purple-500/10',
+    },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Attendance Summary</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Attendance Summary</h1>
+        <p className="text-sm text-muted-foreground">
           View late and absence records for all employees
         </p>
       </div>
@@ -144,7 +174,7 @@ export default function AttendanceSummaryPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <div className="space-y-1">
               <label className="text-sm font-medium">Month</label>
               <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
@@ -181,156 +211,127 @@ export default function AttendanceSummaryPage() {
 
       {/* Summary Cards */}
       {totals && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="h-5 w-5 text-castleton-green" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Employees</p>
-                  <p className="text-2xl font-bold">{totals.totalEmployees}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-100 rounded-lg">
-                  <Clock className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Late Occurrences</p>
-                  <p className="text-2xl font-bold">{totals.totalLateOccurrences}</p>
-                  <p className="text-xs text-muted-foreground">{totals.totalLateMinutes} mins total</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <UserX className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Absences</p>
-                  <p className="text-2xl font-bold">{totals.totalAbsences}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">KPI Voided</p>
-                  <p className="text-2xl font-bold">{totals.kpiVoidedCount}</p>
-                  <p className="text-xs text-muted-foreground">employees</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card key={card.label}>
+                <CardContent className="pt-5 pb-4 px-4 sm:px-6">
+                  <div className="flex flex-col gap-3">
+                    <div className={`p-2 rounded-lg w-fit ${card.iconBg}`}>
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{card.label}</p>
+                      <p className="text-xl sm:text-2xl font-bold mt-0.5">{card.value}</p>
+                      {card.sub && (
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{card.sub}</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
       {/* Attendance Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Employee Attendance for {MONTHS[month - 1]} {year}</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-lg sm:text-xl">
+            Employee Attendance for {MONTHS[month - 1]} {year}
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Late &gt; 3 times OR Absent &gt; 2 times = KPI Voided
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 sm:px-6">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-castleton-green border-t-transparent" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('employeeNo')}>
-                      Employee ID <SortIcon field="employeeNo" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>
-                    <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('employeeName')}>
-                      Name <SortIcon field="employeeName" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>
-                    <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('department')}>
-                      Department <SortIcon field="department" />
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">
-                    <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('lateCount')}>
-                      Late Count <SortIcon field="lateCount" />
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">
-                    <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('totalLateMinutes')}>
-                      Late Minutes <SortIcon field="totalLateMinutes" />
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">
-                    <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('absentCount')}>
-                      Absent Count <SortIcon field="absentCount" />
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">KPI Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedAttendance.length === 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No attendance data found for this period
-                    </TableCell>
+                    <TableHead className="whitespace-nowrap">
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('employeeNo')}>
+                        Employee ID <SortIcon field="employeeNo" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('employeeName')}>
+                        Name <SortIcon field="employeeName" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('department')}>
+                        Department <SortIcon field="department" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="text-center whitespace-nowrap">
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('lateCount')}>
+                        Late <SortIcon field="lateCount" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="text-center whitespace-nowrap">
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('totalLateMinutes')}>
+                        Late Mins <SortIcon field="totalLateMinutes" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="text-center whitespace-nowrap">
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('absentCount')}>
+                        Absent <SortIcon field="absentCount" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="text-center whitespace-nowrap">KPI Status</TableHead>
                   </TableRow>
-                ) : (
-                  sortedAttendance.map((record) => (
-                    <TableRow key={record.employeeId} className={record.kpiVoided ? 'bg-red-50' : ''}>
-                      <TableCell className="font-medium">{record.employeeNo}</TableCell>
-                      <TableCell>{record.employeeName}</TableCell>
-                      <TableCell>{record.department}</TableCell>
-                      <TableCell className="text-center">
-                        <span className={record.lateCount > 3 ? 'text-red-600 font-semibold' : ''}>
-                          {record.lateCount}
-                          {record.lateCount > 3 && <span className="text-xs ml-1">(max 3)</span>}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">{record.totalLateMinutes}</TableCell>
-                      <TableCell className="text-center">
-                        <span className={record.absentCount > 2 ? 'text-red-600 font-semibold' : ''}>
-                          {record.absentCount}
-                          {record.absentCount > 2 && <span className="text-xs ml-1">(max 2)</span>}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {!record.hasData ? (
-                          <Badge variant="secondary">No Data</Badge>
-                        ) : record.kpiVoided ? (
-                          <Badge variant="destructive" title={record.kpiVoidReason || ''}>
-                            Voided
-                          </Badge>
-                        ) : (
-                          <Badge variant="success">Active</Badge>
-                        )}
+                </TableHeader>
+                <TableBody>
+                  {sortedAttendance.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        No attendance data found for this period
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    sortedAttendance.map((record) => (
+                      <TableRow key={record.employeeId} className={record.kpiVoided ? 'bg-red-50 dark:bg-red-500/5' : ''}>
+                        <TableCell className="font-medium whitespace-nowrap">{record.employeeNo}</TableCell>
+                        <TableCell className="whitespace-nowrap">{record.employeeName}</TableCell>
+                        <TableCell className="whitespace-nowrap">{record.department}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={record.lateCount > 3 ? 'text-red-600 font-semibold' : ''}>
+                            {record.lateCount}
+                            {record.lateCount > 3 && <span className="text-xs ml-1">(max 3)</span>}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">{record.totalLateMinutes}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={record.absentCount > 2 ? 'text-red-600 font-semibold' : ''}>
+                            {record.absentCount}
+                            {record.absentCount > 2 && <span className="text-xs ml-1">(max 2)</span>}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {!record.hasData ? (
+                            <Badge variant="secondary">No Data</Badge>
+                          ) : record.kpiVoided ? (
+                            <Badge variant="destructive" title={record.kpiVoidReason || ''}>
+                              Voided
+                            </Badge>
+                          ) : (
+                            <Badge variant="success">Active</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
