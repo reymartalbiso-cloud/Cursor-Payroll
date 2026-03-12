@@ -43,7 +43,7 @@ export default function DashboardLayout({
 
   if (isChecking) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center">
         <div className="flex flex-col items-center gap-5 animate-fade-in">
           <div className="relative w-40 h-14">
             <Image
@@ -66,7 +66,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Sidebar />
       <main className="ml-64 min-h-screen p-6 transition-all duration-300">
         {children}
