@@ -38,9 +38,21 @@ export function ChatWidget() {
       } else if (typeof error === 'string') {
         message = error;
       }
-      if (message === 'Failed to fetch') {
-        message = 'Could not connect to the AI service. Ensure the server is running and OPENROUTER_API_KEY is set in .env.';
+
+      // Try to parse JSON error messages from upstream APIs
+      try {
+        const parsed = JSON.parse(message);
+        if (parsed?.error) message = parsed.error;
+      } catch {
+        // not JSON, keep as-is
       }
+
+      if (message === 'Failed to fetch') {
+        message = 'Could not connect to the AI service. Please check that the server is running.';
+      } else if (message.toLowerCase().includes('user not found') || message.toLowerCase().includes('invalid api key') || message.toLowerCase().includes('unauthorized')) {
+        message = 'The AI service API key is invalid or expired. Please update the OPENROUTER_API_KEY in your environment settings.';
+      }
+
       toast({
         title: 'Chat Error',
         description: message,

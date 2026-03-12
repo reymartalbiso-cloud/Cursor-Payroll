@@ -80,15 +80,25 @@ export async function POST(req: Request) {
       cause: error.cause,
     });
     
-    // Return more specific error message if possible
-    const errorMessage = error.message || 'Failed to process chat request';
-    
+    let errorMessage = error.message || 'Failed to process chat request';
+    let statusCode = 500;
+
+    // Detect upstream API key / auth issues
+    try {
+      const parsed = JSON.parse(errorMessage);
+      if (parsed?.error) errorMessage = parsed.error;
+    } catch {
+      // not JSON
+    }
+
+    if (errorMessage.toLowerCase().includes('user not found') || errorMessage.toLowerCase().includes('invalid api key') || errorMessage.toLowerCase().includes('unauthorized')) {
+      errorMessage = 'The AI service API key is invalid or expired. Please update the OPENROUTER_API_KEY in your environment.';
+      statusCode = 502;
+    }
+
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: errorMessage }),
+      { status: statusCode, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }
