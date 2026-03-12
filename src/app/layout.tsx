@@ -3,8 +3,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { VideoBackground } from '@/components/layout/video-background';
-import { ChatWidget } from '@/components/ui/chat-widget';
-
 import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -31,7 +29,6 @@ export default function RootLayout({
           <VideoBackground src="https://www.pexels.com/download/video/10922866/" opacity={0.5} />
           {children}
           <Toaster />
-          <ChatWidget />
         </ThemeProvider>
       </body>
     </html>

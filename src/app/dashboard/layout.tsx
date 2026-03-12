@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
+import { ChatWidget } from '@/components/ui/chat-widget';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function DashboardLayout({
@@ -60,6 +61,7 @@ export default function DashboardLayout({
       <main className="ml-64 min-h-screen p-6 transition-all duration-300">
         {children}
       </main>
+      <ChatWidget />
     </div>
   );
 }
