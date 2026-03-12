@@ -37,6 +37,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
+    const search = (searchParams.get('search') || '').trim();
+    const sortField = searchParams.get('sortField') || '';
+    const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
 
     const where: any = {
       ...(year && { year: parseInt(year) }),
@@ -50,10 +53,56 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    if (search) {
+      // Search by name, which already contains month, year, and cutoff label
+      where.name = {
+        contains: search,
+        mode: 'insensitive',
+      };
+    }
+
+    // Default ordering: newest periods first
+    let orderBy: any =
+      [{ year: 'desc' }, { month: 'desc' }, { cutoffType: 'desc' }] as any;
+
+    // Apply explicit sort if requested
+    if (sortField) {
+      const direction: 'asc' | 'desc' = sortOrder === 'asc' ? 'asc' : 'desc';
+
+      switch (sortField) {
+        case 'name':
+          orderBy = { name: direction };
+          break;
+        case 'cutoffStart':
+          orderBy = { cutoffStart: direction };
+          break;
+        case 'payDate':
+          orderBy = { payDate: direction };
+          break;
+        case 'workdays':
+          orderBy = { eligibleWorkdays: direction };
+          break;
+        case 'status':
+          orderBy = { status: direction };
+          break;
+        case 'payslips':
+          // Sort by number of payslips
+          orderBy = {
+            payslips: {
+              _count: direction,
+            },
+          };
+          break;
+        default:
+          // keep default order
+          break;
+      }
+    }
+
     const [payrollRuns, total] = await Promise.all([
       prisma.payrollRun.findMany({
         where,
-        orderBy: [{ year: 'desc' }, { month: 'desc' }, { cutoffType: 'desc' }],
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
         include: {

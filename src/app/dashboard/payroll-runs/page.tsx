@@ -56,6 +56,10 @@ export default function PayrollRunsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [filterYear, setFilterYear] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortField, setSortField] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const [newRun, setNewRun] = useState({
     year: new Date().getFullYear(),
@@ -79,6 +83,9 @@ export default function PayrollRunsPage() {
         limit: '10',
         ...(filterYear && { year: filterYear }),
         ...(filterStatus && { status: filterStatus }),
+        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(sortField && { sortField }),
+        ...(sortField && sortOrder && { sortOrder }),
       });
       const res = await fetch(`/api/payroll-runs?${params}`);
       if (res.ok) {
@@ -91,11 +98,32 @@ export default function PayrollRunsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, filterYear, filterStatus]);
+  }, [page, filterYear, filterStatus, debouncedSearch, sortField, sortOrder]);
 
   useEffect(() => {
     fetchPayrollRuns();
   }, [fetchPayrollRuns]);
+
+  // Debounce search input
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [search]);
+
+  const toggleSort = (field: string) => {
+    setPage(1);
+    setSortField((current) => {
+      if (current !== field) {
+        setSortOrder('asc');
+        return field;
+      }
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return field;
+    });
+  };
 
   const handleCreate = async () => {
     if (!newRun.payDate) {
@@ -259,10 +287,11 @@ export default function PayrollRunsPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters & search */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex gap-4">
             <Select
               value={filterYear}
               onValueChange={(v) => {
@@ -299,6 +328,14 @@ export default function PayrollRunsPage() {
                 <SelectItem value="FINALIZED">Finalized</SelectItem>
               </SelectContent>
             </Select>
+            </div>
+            <div className="w-full md:w-72">
+              <Input
+                placeholder="Search by name, month, or year..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -318,12 +355,60 @@ export default function PayrollRunsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Cutoff Period</TableHead>
-                    <TableHead>Pay Date</TableHead>
-                    <TableHead>Workdays</TableHead>
-                    <TableHead>Payslips</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 font-semibold hover:text-primary"
+                        onClick={() => toggleSort('name')}
+                      >
+                        Name
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 font-semibold hover:text-primary"
+                        onClick={() => toggleSort('cutoffStart')}
+                      >
+                        Cutoff Period
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 font-semibold hover:text-primary"
+                        onClick={() => toggleSort('payDate')}
+                      >
+                        Pay Date
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 font-semibold hover:text-primary"
+                        onClick={() => toggleSort('workdays')}
+                      >
+                        Workdays
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 font-semibold hover:text-primary"
+                        onClick={() => toggleSort('payslips')}
+                      >
+                        Payslips
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 font-semibold hover:text-primary"
+                        onClick={() => toggleSort('status')}
+                      >
+                        Status
+                      </button>
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
