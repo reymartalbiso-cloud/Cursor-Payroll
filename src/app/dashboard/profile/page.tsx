@@ -27,12 +27,18 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Password form
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Edit profile form
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const { toast } = useToast();
 
@@ -46,6 +52,8 @@ export default function ProfilePage() {
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
+        setEditName(data.name);
+        setEditEmail(data.email);
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -56,6 +64,47 @@ export default function ProfilePage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editName.trim() || !editEmail.trim()) {
+      toast({
+        title: 'Invalid details',
+        description: 'Name and email are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName.trim(), email: editEmail.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      setProfile(data);
+      toast({
+        title: 'Profile updated',
+        description: 'Your name and email have been updated.',
+      });
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update profile',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -170,7 +219,10 @@ export default function ProfilePage() {
             <Label className="text-muted-foreground">Email</Label>
             <p className="font-medium">{profile.email}</p>
           </div>
-          <div className="pt-4 border-t">
+          <div className="pt-4 border-t flex flex-wrap gap-3">
+            <Button onClick={() => setIsEditDialogOpen(true)}>
+              Edit Profile
+            </Button>
             <Button onClick={() => setIsPasswordDialogOpen(true)} variant="outline">
               <Lock className="h-4 w-4 mr-2" />
               Change Password
@@ -220,6 +272,42 @@ export default function ProfilePage() {
             </Button>
             <Button onClick={handleChangePassword} disabled={isChangingPassword}>
               {isChangingPassword ? 'Changing...' : 'Change Password'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="editName">Name</Label>
+              <Input
+                id="editName"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editEmail">Email</Label>
+              <Input
+                id="editEmail"
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
+              {isSavingProfile ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
