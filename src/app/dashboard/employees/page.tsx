@@ -382,32 +382,32 @@ export default function EmployeesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>
-                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('employeeNo')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('employeeNo')}>
                         Employee ID <SortIcon field="employeeNo" />
                       </Button>
                     </TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('name')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('name')}>
                         Name <SortIcon field="name" />
                       </Button>
                     </TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('department')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('department')}>
                         Department <SortIcon field="department" />
                       </Button>
                     </TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('position')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('position')}>
                         Position <SortIcon field="position" />
                       </Button>
                     </TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('dailyRate')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('dailyRate')}>
                         Daily Rate <SortIcon field="dailyRate" />
                       </Button>
                     </TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('status')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('status')}>
                         Status <SortIcon field="status" />
                       </Button>
                     </TableHead>

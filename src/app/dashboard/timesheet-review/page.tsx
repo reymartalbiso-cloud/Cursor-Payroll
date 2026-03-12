@@ -483,29 +483,29 @@ export default function TimesheetReviewPage() {
                             <TableHeader>
                               <TableRow>
                                 <TableHead>
-                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('employee')}>
+                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('employee')}>
                                     Employee <SortIcon field="employee" />
                                   </Button>
                                 </TableHead>
                                 <TableHead>
-                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('date')}>
+                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('date')}>
                                     Date <SortIcon field="date" />
                                   </Button>
                                 </TableHead>
                                 <TableHead>Time In</TableHead>
                                 <TableHead>Time Out</TableHead>
                                 <TableHead>
-                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('late')}>
+                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('late')}>
                                     Late <SortIcon field="late" />
                                   </Button>
                                 </TableHead>
                                 <TableHead>
-                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('undertime')}>
+                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('undertime')}>
                                     UT <SortIcon field="undertime" />
                                   </Button>
                                 </TableHead>
                                 <TableHead>
-                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent" onClick={() => handleSort('overtime')}>
+                                  <Button variant="ghost" className="p-0 h-auto font-semibold hover:bg-transparent hover:text-foreground" onClick={() => handleSort('overtime')}>
                                     OT (h:mm) <SortIcon field="overtime" />
                                   </Button>
                                 </TableHead>

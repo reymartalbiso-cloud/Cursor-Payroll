@@ -257,32 +257,32 @@ export default function AttendanceSummaryPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="whitespace-nowrap">
-                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('employeeNo')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent hover:text-foreground" onClick={() => handleSort('employeeNo')}>
                         Employee ID <SortIcon field="employeeNo" />
                       </Button>
                     </TableHead>
                     <TableHead className="whitespace-nowrap">
-                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('employeeName')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent hover:text-foreground" onClick={() => handleSort('employeeName')}>
                         Name <SortIcon field="employeeName" />
                       </Button>
                     </TableHead>
                     <TableHead className="whitespace-nowrap">
-                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('department')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent hover:text-foreground" onClick={() => handleSort('department')}>
                         Department <SortIcon field="department" />
                       </Button>
                     </TableHead>
                     <TableHead className="text-center whitespace-nowrap">
-                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('lateCount')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent hover:text-foreground" onClick={() => handleSort('lateCount')}>
                         Late <SortIcon field="lateCount" />
                       </Button>
                     </TableHead>
                     <TableHead className="text-center whitespace-nowrap">
-                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('totalLateMinutes')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent hover:text-foreground" onClick={() => handleSort('totalLateMinutes')}>
                         Late Mins <SortIcon field="totalLateMinutes" />
                       </Button>
                     </TableHead>
                     <TableHead className="text-center whitespace-nowrap">
-                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent" onClick={() => handleSort('absentCount')}>
+                      <Button variant="ghost" className="p-0 h-auto font-semibold text-xs hover:bg-transparent hover:text-foreground" onClick={() => handleSort('absentCount')}>
                         Absent <SortIcon field="absentCount" />
                       </Button>
                     </TableHead>
