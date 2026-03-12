@@ -41,30 +41,28 @@
   }
 
   .dark {
-    --background: 146 43% 4%;
-    /* Near black with a hint of Dark Serpent */
-    --foreground: 0 0% 100%;
-    /* Pure White */
-    --card: 146 43% 6%;
-    --card-foreground: 0 0% 100%;
-    --popover: 146 43% 5%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 160 92% 25%;
-    /* Slightly brighter Castleton Green for dark mode */
+    --background: 160 20% 7%;
+    --foreground: 0 0% 95%;
+    --card: 160 15% 12%;
+    --card-foreground: 0 0% 95%;
+    --popover: 160 15% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 160 80% 35%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 146 43% 10%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 146 43% 10%;
-    --muted-foreground: 146 20% 85%;
-    /* Lightened muted text */
+    --secondary: 160 12% 16%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 160 12% 16%;
+    --muted-foreground: 160 10% 60%;
     --accent: 35 100% 64%;
-    /* Saffron remains consistent */
-    --accent-foreground: 146 43% 10%;
-    --destructive: 0 62.8% 30.6%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 70% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 146 43% 15%;
-    --input: 146 43% 15%;
-    --ring: 160 92% 25%;
+    --border: 160 12% 22%;
+    --input: 160 12% 22%;
+    --ring: 160 80% 35%;
+
+    --dark-serpent: 160 15% 80%;
+    --castleton-green: 160 80% 35%;
   }
 
 

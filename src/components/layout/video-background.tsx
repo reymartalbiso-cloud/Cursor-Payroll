@@ -14,7 +14,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
     className = ""
 }) => {
     return (
-        <div className={`fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-white ${className}`}>
+        <div className={`fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-white dark:bg-[hsl(160,20%,5%)] ${className}`}>
             <video
                 autoPlay
                 loop
