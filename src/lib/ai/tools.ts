@@ -935,4 +935,144 @@ export const aiTools = {
       }
     },
   }),
+
+  // ─── BROADCAST ──────────────────────────────────────────────────────────
+
+  sendBroadcast: tool({
+    description: 'Send a broadcast announcement to all users via the LifeScan app. Requires LifeScan to be configured. Always confirm title and message with the user before sending.',
+    parameters: z.object({
+      title: z.string().describe('Title of the broadcast announcement'),
+      message: z.string().describe('Body/content of the broadcast message'),
+    }),
+    execute: async ({ title, message }: any) => {
+      const { accountingService } = await import('@/services/accountingService');
+
+      if (!accountingService.isConfigured()) {
+        return { success: false, error: 'LifeScan API is not configured. Set LIFESCAN_API_URL and LIFESCAN_API_KEY in environment variables.' };
+      }
+
+      try {
+        const result = await accountingService.sendBroadcast(title, message);
+        return { success: true, notificationCount: result.notificationCount, message: `Broadcast "${title}" sent successfully to ${result.notificationCount} users.` };
+      } catch (error: any) {
+        return { success: false, error: error.message || 'Failed to send broadcast' };
+      }
+    },
+  }),
+
+  // ─── SETTINGS ───────────────────────────────────────────────────────────
+
+  getSettings: tool({
+    description: 'Get all current system settings including company info and payroll configuration.',
+    parameters: z.object({}),
+    execute: async () => {
+      const settings = await prisma.setting.findMany({ orderBy: { key: 'asc' } });
+      const settingsMap = Object.fromEntries(settings.map((s: any) => [s.key, { value: s.value, description: s.description, updatedAt: s.updatedAt }]));
+      return settingsMap;
+    },
+  }),
+
+  updateSettings: tool({
+    description: 'Update one or more system settings. Valid keys: company_name, company_address, company_phone, company_email, gov_deduction_mode (fixed_per_cutoff or prorated_by_days), standard_daily_hours, currency (PHP or USD). Confirm changes with the user before applying.',
+    parameters: z.object({
+      settings: z.array(z.object({
+        key: z.string().describe('Setting key e.g. company_name'),
+        value: z.string().describe('New value for the setting'),
+      })).describe('Array of settings to update'),
+    }),
+    execute: async ({ settings }: any) => {
+      const validKeys = ['company_name', 'company_address', 'company_phone', 'company_email', 'gov_deduction_mode', 'standard_daily_hours', 'currency'];
+      const results: any[] = [];
+
+      for (const { key, value } of settings) {
+        if (!validKeys.includes(key)) {
+          results.push({ key, success: false, error: `Invalid setting key. Valid keys: ${validKeys.join(', ')}` });
+          continue;
+        }
+
+        if (key === 'gov_deduction_mode' && !['fixed_per_cutoff', 'prorated_by_days'].includes(value)) {
+          results.push({ key, success: false, error: 'gov_deduction_mode must be "fixed_per_cutoff" or "prorated_by_days"' });
+          continue;
+        }
+
+        if (key === 'currency' && !['PHP', 'USD'].includes(value)) {
+          results.push({ key, success: false, error: 'currency must be "PHP" or "USD"' });
+          continue;
+        }
+
+        await prisma.setting.upsert({
+          where: { key },
+          create: { key, value },
+          update: { value },
+        });
+        results.push({ key, success: true, newValue: value });
+      }
+
+      return { results };
+    },
+  }),
+
+  // ─── OUTSOURCE PROJECTS ─────────────────────────────────────────────────
+
+  listOutsourceProjects: tool({
+    description: 'List all outsource projects.',
+    parameters: z.object({}),
+    execute: async () => {
+      const projects = await prisma.outsourceProject.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { requests: true } } },
+      });
+      return projects;
+    },
+  }),
+
+  deleteOutsourceProject: tool({
+    description: 'Delete an outsource project by ID. Always confirm with the user before deleting.',
+    parameters: z.object({
+      projectId: z.string().describe('ID of the outsource project to delete'),
+    }),
+    execute: async ({ projectId }: any) => {
+      const project = await prisma.outsourceProject.findUnique({ where: { id: projectId } });
+      if (!project) return { success: false, error: 'Outsource project not found' };
+
+      await prisma.outsourceProject.delete({ where: { id: projectId } });
+      return { success: true, message: `Outsource project "${project.name}" has been deleted.` };
+    },
+  }),
+
+  listOutsourceRequests: tool({
+    description: 'List outsource payroll requests, optionally filtered by project ID.',
+    parameters: z.object({
+      projectId: z.string().optional().describe('Filter by project ID (optional)'),
+    }),
+    execute: async ({ projectId }: any) => {
+      const requests = await prisma.outsourcePayrollRequest.findMany({
+        where: projectId ? { projectId } : undefined,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          project: { select: { name: true } },
+          _count: { select: { entries: true } },
+        },
+        take: 20,
+      });
+      return requests;
+    },
+  }),
+
+  deleteOutsourceRequest: tool({
+    description: 'Delete an outsource payroll request by ID. Always confirm with the user before deleting.',
+    parameters: z.object({
+      requestId: z.string().describe('ID of the outsource payroll request to delete'),
+    }),
+    execute: async ({ requestId }: any) => {
+      const request = await prisma.outsourcePayrollRequest.findUnique({
+        where: { id: requestId },
+        include: { project: { select: { name: true } } },
+      });
+      if (!request) return { success: false, error: 'Outsource payroll request not found' };
+
+      await prisma.outsourcePayrollRequest.delete({ where: { id: requestId } });
+      return { success: true, message: `Outsource payroll request for project "${request.project?.name}" has been deleted.` };
+    },
+  }),
 };
