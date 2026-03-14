@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { Menu } from 'lucide-react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { ChatWidget } from '@/components/ui/chat-widget';
 import { useAuthStore } from '@/stores/auth-store';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
   children,
@@ -15,6 +18,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const { user, setUser, setLoading } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -67,8 +72,39 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen">
-      <Sidebar />
-      <main className="ml-64 min-h-screen p-4 sm:p-6 transition-all duration-300 min-w-0 overflow-x-hidden">
+      {/* Mobile menu button - only visible on small screens */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed left-4 top-4 z-50 md:hidden h-10 w-10 rounded-lg border-dark-serpent/20 bg-background shadow-md"
+        onClick={() => setSidebarMobileOpen(true)}
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      {/* Backdrop when sidebar is open on mobile */}
+      {sidebarMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          aria-hidden
+          onClick={() => setSidebarMobileOpen(false)}
+        />
+      )}
+
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onCollapsedChange={setSidebarCollapsed}
+        mobileOpen={sidebarMobileOpen}
+        onMobileOpenChange={setSidebarMobileOpen}
+      />
+      <main
+        className={cn(
+          'min-h-screen p-4 pt-14 sm:p-6 md:pt-6 transition-all duration-300 min-w-0 overflow-x-hidden',
+          'ml-0',
+          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'
+        )}
+      >
         {children}
       </main>
       <ChatWidget />

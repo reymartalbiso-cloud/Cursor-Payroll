@@ -18,6 +18,7 @@ import {
   ClipboardCheck,
   UserCircle,
   Calculator,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -39,10 +40,26 @@ const navItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings, roles: ['ADMIN'] },
 ];
 
-export function Sidebar() {
+type SidebarProps = {
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  mobileOpen?: boolean;
+  onMobileOpenChange?: (open: boolean) => void;
+};
+
+export function Sidebar({
+  collapsed: controlledCollapsed,
+  onCollapsedChange,
+  mobileOpen = false,
+  onMobileOpenChange,
+}: SidebarProps = {}) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed = onCollapsedChange ? (controlledCollapsed ?? false) : internalCollapsed;
+  const setCollapsed = onCollapsedChange
+    ? (v: boolean) => onCollapsedChange(v)
+    : setInternalCollapsed;
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -62,16 +79,34 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen bg-dark-serpent text-white transition-all duration-300 shadow-xl',
-        collapsed ? 'w-[72px]' : 'w-64'
+        'fixed left-0 top-0 z-50 h-screen bg-dark-serpent text-white transition-all duration-300 shadow-xl',
+        collapsed ? 'w-[72px]' : 'w-64',
+        'md:translate-x-0',
+        mobileOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'
       )}
     >
       <div className="flex h-full flex-col">
 
+        {/* Mobile close button */}
+        {onMobileOpenChange && (
+          <div className="flex md:hidden absolute right-3 top-3 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onMobileOpenChange(false)}
+              className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10 rounded-lg"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
+
         {/* Logo Section */}
         <div className={cn(
           'flex flex-col border-b border-white/[0.06] px-3',
-          collapsed ? 'h-20 items-center justify-center' : 'pt-7 pb-4 space-y-3'
+          collapsed ? 'h-20 items-center justify-center' : 'pt-7 pb-4 space-y-3',
+          onMobileOpenChange && 'max-md:pt-12'
         )}>
           <div className={cn('flex flex-col items-center w-full', collapsed ? 'justify-center' : 'space-y-3')}>
             <div className={cn('flex items-center w-full', collapsed ? 'justify-center' : 'justify-between')}>
