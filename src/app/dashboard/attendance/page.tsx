@@ -19,7 +19,8 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, UserX, AlertTriangle, Users, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Clock, UserX, AlertTriangle, Users, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AttendanceRecord {
@@ -61,6 +62,7 @@ export default function AttendanceSummaryPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [sortField, setSortField] = useState<SortField>('employeeNo');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [search, setSearch] = useState('');
   const { toast } = useToast();
 
   const fetchAttendance = useCallback(async () => {
@@ -129,6 +131,15 @@ export default function AttendanceSummaryPage() {
     return sortOrder === 'asc' ? comparison : -comparison;
   });
 
+  const searchLower = search.trim().toLowerCase();
+  const filteredAttendance = searchLower
+    ? sortedAttendance.filter(
+        (record) =>
+          record.employeeNo.toLowerCase().includes(searchLower) ||
+          record.employeeName.toLowerCase().includes(searchLower)
+      )
+    : sortedAttendance;
+
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   const summaryCards = [
@@ -174,7 +185,7 @@ export default function AttendanceSummaryPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
             <div className="space-y-1">
               <label className="text-sm font-medium">Month</label>
               <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
@@ -204,6 +215,18 @@ export default function AttendanceSummaryPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex-1 min-w-[200px] max-w-md space-y-1">
+              <label className="text-sm font-medium">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name or Employee ID..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -290,14 +313,16 @@ export default function AttendanceSummaryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedAttendance.length === 0 ? (
+                  {filteredAttendance.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No attendance data found for this period
+                        {attendance.length === 0
+                          ? 'No attendance data found for this period'
+                          : 'No employees match your search'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    sortedAttendance.map((record) => (
+                    filteredAttendance.map((record) => (
                       <TableRow key={record.employeeId} className={record.kpiVoided ? 'bg-red-50 dark:bg-red-500/5' : ''}>
                         <TableCell className="font-medium whitespace-nowrap">{record.employeeNo}</TableCell>
                         <TableCell className="whitespace-nowrap">{record.employeeName}</TableCell>
