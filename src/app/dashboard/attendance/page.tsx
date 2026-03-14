@@ -140,34 +140,57 @@ export default function AttendanceSummaryPage() {
       )
     : sortedAttendance;
 
+  // Smart summary: when searching, cards show totals for filtered employee(s) only; otherwise show all for selected month/year
+  const isFiltered = searchLower.length > 0;
+  const displayTotals: AttendanceTotals = isFiltered
+    ? {
+        totalEmployees: filteredAttendance.length,
+        employeesWithData: filteredAttendance.filter((a) => a.hasData).length,
+        totalLateOccurrences: filteredAttendance.reduce((s, a) => s + a.lateCount, 0),
+        totalAbsences: filteredAttendance.reduce((s, a) => s + a.absentCount, 0),
+        totalLateMinutes: filteredAttendance.reduce((s, a) => s + a.totalLateMinutes, 0),
+        kpiVoidedCount: filteredAttendance.filter((a) => a.kpiVoided).length,
+      }
+    : (totals ?? {
+        totalEmployees: 0,
+        employeesWithData: 0,
+        totalLateOccurrences: 0,
+        totalAbsences: 0,
+        totalLateMinutes: 0,
+        kpiVoidedCount: 0,
+      });
+
+  const isSingleEmployee = isFiltered && filteredAttendance.length === 1;
+  const employeeLabel = isSingleEmployee ? 'employee' : 'employees';
+
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   const summaryCards = [
     {
-      label: 'Total Employees',
-      value: totals?.totalEmployees ?? 0,
-      sub: null,
+      label: isFiltered ? `Employees (filtered)` : 'Total Employees',
+      value: displayTotals.totalEmployees,
+      sub: isFiltered && displayTotals.totalEmployees > 0 ? `for ${MONTHS[month - 1]} ${year}` : null,
       icon: Users,
       iconBg: 'bg-castleton-green/10 text-castleton-green',
     },
     {
       label: 'Late Occurrences',
-      value: totals?.totalLateOccurrences ?? 0,
-      sub: `${totals?.totalLateMinutes ?? 0} mins total`,
+      value: displayTotals.totalLateOccurrences,
+      sub: `${displayTotals.totalLateMinutes} mins total`,
       icon: Clock,
       iconBg: 'bg-amber-100 text-amber-600 dark:bg-amber-500/10',
     },
     {
       label: 'Total Absences',
-      value: totals?.totalAbsences ?? 0,
-      sub: null,
+      value: displayTotals.totalAbsences,
+      sub: isFiltered ? `for selected ${employeeLabel}` : null,
       icon: UserX,
       iconBg: 'bg-red-100 text-red-600 dark:bg-red-500/10',
     },
     {
       label: 'KPI Voided',
-      value: totals?.kpiVoidedCount ?? 0,
-      sub: 'employees',
+      value: displayTotals.kpiVoidedCount,
+      sub: employeeLabel,
       icon: AlertTriangle,
       iconBg: 'bg-purple-100 text-purple-600 dark:bg-purple-500/10',
     },
