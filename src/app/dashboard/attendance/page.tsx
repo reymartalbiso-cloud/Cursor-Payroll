@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Table,
@@ -10,18 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, UserX, AlertTriangle, Users, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Clock, UserX, AlertTriangle, Users, ArrowUpDown, ArrowUp, ArrowDown, Search, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface AttendanceRecord {
   employeeId: string;
@@ -54,21 +49,33 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+const YEARS_OPTIONS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
 export default function AttendanceSummaryPage() {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [totals, setTotals] = useState<AttendanceTotals | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>(() => [new Date().getMonth() + 1]);
+  const [selectedYears, setSelectedYears] = useState<number[]>(() => [new Date().getFullYear()]);
   const [sortField, setSortField] = useState<SortField>('employeeNo');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [search, setSearch] = useState('');
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const monthRef = useRef<HTMLDivElement>(null);
+  const yearRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const fetchAttendance = useCallback(async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/attendance-summary?year=${year}&month=${month}`);
+      const monthsParam = selectedMonths.length === 12 ? 'all' : selectedMonths.join(',');
+      const yearsParam = selectedYears.length === YEARS_OPTIONS.length ? 'all' : selectedYears.join(',');
+      const res = await fetch(
+        `/api/attendance-summary?months=${encodeURIComponent(monthsParam)}&years=${encodeURIComponent(yearsParam)}`
+      );
       if (res.ok) {
         const data = await res.json();
         setAttendance(data.attendanceSummary);
@@ -84,11 +91,20 @@ export default function AttendanceSummaryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [year, month, toast]);
+  }, [selectedMonths, selectedYears, toast]);
 
   useEffect(() => {
     fetchAttendance();
   }, [fetchAttendance]);
+
+  useEffect(() => {
+    const onOutside = (e: MouseEvent) => {
+      if (monthRef.current && !monthRef.current.contains(e.target as Node)) setMonthDropdownOpen(false);
+      if (yearRef.current && !yearRef.current.contains(e.target as Node)) setYearDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, []);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -163,13 +179,22 @@ export default function AttendanceSummaryPage() {
   const isSingleEmployee = isFiltered && filteredAttendance.length === 1;
   const employeeLabel = isSingleEmployee ? 'employee' : 'employees';
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  const periodLabel =
+    selectedMonths.length === 0 || selectedYears.length === 0
+      ? 'selected period'
+      : selectedMonths.length === 12 && selectedYears.length === YEARS_OPTIONS.length
+        ? 'all months, all years'
+        : selectedMonths.length === 12
+          ? `all months, ${selectedYears.slice().sort((a, b) => b - a).join(', ')}`
+          : selectedYears.length === YEARS_OPTIONS.length
+            ? `${selectedMonths.slice().sort((a, b) => a - b).map((m) => MONTHS[m - 1]).join(', ')} (all years)`
+            : `${selectedMonths.slice().sort((a, b) => a - b).map((m) => MONTHS[m - 1]).join(', ')} ${selectedYears.slice().sort((a, b) => b - a).join(', ')}`;
 
   const summaryCards = [
     {
       label: isFiltered ? `Employees (filtered)` : 'Total Employees',
       value: displayTotals.totalEmployees,
-      sub: isFiltered && displayTotals.totalEmployees > 0 ? `for ${MONTHS[month - 1]} ${year}` : null,
+      sub: isFiltered && displayTotals.totalEmployees > 0 ? `for ${periodLabel}` : null,
       icon: Users,
       iconBg: 'bg-castleton-green/10 text-castleton-green',
     },
@@ -205,39 +230,122 @@ export default function AttendanceSummaryPage() {
         </p>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
+      {/* Filters - raise stacking context when dropdowns open so they appear above summary cards */}
+      <div className={cn('relative', (monthDropdownOpen || yearDropdownOpen) && 'z-[100]')}>
+        <Card>
+          <CardContent className="pt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="space-y-1">
+            <div className="space-y-1 relative" ref={monthRef}>
               <label className="text-sm font-medium">Month</label>
-              <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((m, i) => (
-                    <SelectItem key={i} value={(i + 1).toString()}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-[160px] justify-between font-normal"
+                onClick={() => setMonthDropdownOpen((o) => !o)}
+              >
+                <span className="truncate">
+                  {selectedMonths.length === 0
+                    ? 'Select months'
+                    : selectedMonths.length === 12
+                      ? 'All months'
+                      : selectedMonths
+                          .slice()
+                          .sort((a, b) => a - b)
+                          .map((m) => MONTHS[m - 1])
+                          .join(', ')}
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+              {monthDropdownOpen && (
+                <div className="absolute top-full left-0 z-50 mt-1 w-[200px] rounded-md border bg-popover p-2 shadow-md">
+                  <label className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent">
+                    <Checkbox
+                      checked={selectedMonths.length === 12}
+                      onCheckedChange={(checked) => {
+                        setSelectedMonths(checked ? [...ALL_MONTHS] : []);
+                      }}
+                    />
+                    All months
+                  </label>
+                  <div className="my-1 border-t" />
+                  {MONTHS.map((m, i) => {
+                    const monthNum = i + 1;
+                    return (
+                      <label
+                        key={monthNum}
+                        className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent"
+                      >
+                        <Checkbox
+                          checked={selectedMonths.includes(monthNum)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              const next = [...selectedMonths, monthNum].sort((a, b) => a - b);
+                              setSelectedMonths(next.length === 12 ? [...ALL_MONTHS] : next);
+                            } else {
+                              setSelectedMonths(selectedMonths.filter((n) => n !== monthNum));
+                            }
+                          }}
+                        />
+                        {m}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 relative" ref={yearRef}>
               <label className="text-sm font-medium">Year</label>
-              <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((y) => (
-                    <SelectItem key={y} value={y.toString()}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-[160px] justify-between font-normal"
+                onClick={() => setYearDropdownOpen((o) => !o)}
+              >
+                <span className="truncate">
+                  {selectedYears.length === 0
+                    ? 'Select years'
+                    : selectedYears.length === YEARS_OPTIONS.length
+                      ? 'All years'
+                      : selectedYears
+                          .slice()
+                          .sort((a, b) => b - a)
+                          .join(', ')}
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+              {yearDropdownOpen && (
+                <div className="absolute top-full left-0 z-50 mt-1 w-[200px] rounded-md border bg-popover p-2 shadow-md max-h-[280px] overflow-y-auto">
+                  <label className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent">
+                    <Checkbox
+                      checked={selectedYears.length === YEARS_OPTIONS.length}
+                      onCheckedChange={(checked) => {
+                        setSelectedYears(checked ? [...YEARS_OPTIONS] : []);
+                      }}
+                    />
+                    All years
+                  </label>
+                  <div className="my-1 border-t" />
+                  {YEARS_OPTIONS.map((y) => (
+                    <label
+                      key={y}
+                      className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent"
+                    >
+                      <Checkbox
+                        checked={selectedYears.includes(y)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            const next = [...selectedYears, y].sort((a, b) => b - a);
+                            setSelectedYears(next.length === YEARS_OPTIONS.length ? [...YEARS_OPTIONS] : next);
+                          } else {
+                            setSelectedYears(selectedYears.filter((n) => n !== y));
+                          }
+                        }}
+                      />
                       {y}
-                    </SelectItem>
+                    </label>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-[200px] max-w-md space-y-1">
               <label className="text-sm font-medium">Search</label>
@@ -253,7 +361,8 @@ export default function AttendanceSummaryPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
 
       {/* Summary Cards */}
       {totals && (
@@ -286,7 +395,7 @@ export default function AttendanceSummaryPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg sm:text-xl">
-            Employee Attendance for {MONTHS[month - 1]} {year}
+            Employee Attendance for {selectedMonths.length === 0 || selectedYears.length === 0 ? 'Select month(s) and year(s)' : periodLabel}
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
             Late &gt; 3 times OR Absent &gt; 2 times = KPI Voided

@@ -556,7 +556,7 @@ export const aiTools = {
       };
     },
   }),
-
+  
   // ─── HOLIDAYS ─────────────────────────────────────────────────────────────
 
   listHolidays: tool({

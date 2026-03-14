@@ -24,8 +24,29 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = request.nextUrl;
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
-    const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
+    const currentYear = new Date().getFullYear();
+
+    // Parse months: "all" or comma-separated (e.g. "1,2,3"); legacy single "month" supported
+    const monthsParam = searchParams.get('months') ?? searchParams.get('month') ?? '';
+    const monthNumbers: number[] =
+      monthsParam === 'all' || !monthsParam
+        ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        : monthsParam
+            .split(',')
+            .map((m) => parseInt(m.trim(), 10))
+            .filter((m) => m >= 1 && m <= 12);
+    const monthSet = monthNumbers.length ? monthNumbers : [new Date().getMonth() + 1];
+
+    // Parse years: "all" or comma-separated; legacy single "year" supported
+    const yearsParam = searchParams.get('years') ?? searchParams.get('year') ?? '';
+    const yearNumbers: number[] =
+      yearsParam === 'all' || !yearsParam
+        ? Array.from({ length: 5 }, (_, i) => currentYear - i)
+        : yearsParam
+            .split(',')
+            .map((y) => parseInt(y.trim(), 10))
+            .filter((y) => y >= 2000 && y <= 2100);
+    const yearSet = yearNumbers.length ? yearNumbers : [currentYear];
 
     // Get all active employees
     const employees = await prisma.employee.findMany({
@@ -41,12 +62,12 @@ export async function GET(request: NextRequest) {
       orderBy: { employeeNo: 'asc' },
     });
 
-    // Get all payslips for the selected month
+    // Get all payslips for the selected year(s) and month(s)
     const payslips = await prisma.payslip.findMany({
       where: {
         payrollRun: {
-          year,
-          month,
+          year: { in: yearSet },
+          month: { in: monthSet },
         },
       },
       select: {
@@ -105,8 +126,10 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json({
-      year,
-      month,
+      year: yearSet.length === 1 ? yearSet[0] : null,
+      month: monthSet.length === 1 ? monthSet[0] : null,
+      years: yearSet,
+      months: monthSet,
       attendanceSummary,
       totals,
     });
