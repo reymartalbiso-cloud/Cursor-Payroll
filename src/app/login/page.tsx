@@ -80,7 +80,7 @@ export default function LoginPage() {
             </div>
             <div className="text-center space-y-1.5">
               <h1 className="text-2xl font-bold tracking-tight text-dark-serpent dark:text-saffron">
-                Payroll Management System
+                LifePay
               </h1>
               <p className="text-sm text-muted-foreground/80 font-medium">
                 Sign in to access your account

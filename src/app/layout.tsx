@@ -8,8 +8,8 @@ import { ThemeProvider } from '@/components/theme-provider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Payroll System',
-  description: 'Enterprise Payroll Management System',
+  title: 'LifePay',
+  description: 'LifePay - Enterprise Payroll Management System',
 };
 
 export default function RootLayout({

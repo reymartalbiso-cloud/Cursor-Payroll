@@ -109,7 +109,7 @@ export default function DashboardPage() {
           {getGreeting()}, {user?.name?.split(' ')[0]}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Here&apos;s an overview of your payroll system.
+          Here&apos;s an overview of your LifePay dashboard.
         </p>
       </div>
 
