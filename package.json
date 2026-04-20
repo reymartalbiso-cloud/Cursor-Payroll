@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "prisma migrate dev",
@@ -30,6 +30,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.0.7",
     "@react-pdf/renderer": "^3.4.0",
+    "@prisma/client": "^5.14.0",
     "ai": "^3.4.1",
     "archiver": "^7.0.0",
     "bcryptjs": "^2.4.3",
@@ -51,7 +52,6 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
-    "@prisma/client": "^5.14.0",
     "@types/archiver": "^6.0.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.12",
