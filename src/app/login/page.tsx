@@ -67,24 +67,13 @@ export default function LoginPage() {
           <div className="h-1 w-full bg-gradient-to-r from-castleton-green via-castleton-green/70 to-saffron" />
 
           <CardHeader className="pb-2 pt-10 px-8">
-            <div className="text-center space-y-2 mb-5">
+            <div className="text-center space-y-2 mb-2">
               <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-br from-castleton-green via-castleton-green/80 to-saffron bg-clip-text text-transparent drop-shadow-sm">
                 LifePay
               </h1>
               <p className="text-sm text-muted-foreground/80 font-medium">
                 Sign in to access your account
               </p>
-            </div>
-            <div className="flex justify-center mb-2">
-              <div className="relative w-44 h-14 transition-all duration-500 hover:scale-[1.03] opacity-80">
-                <Image
-                  src="/lifewood-logo.png"
-                  alt="Lifewood Logo"
-                  fill
-                  style={{ objectFit: 'contain' }}
-                  priority
-                />
-              </div>
             </div>
           </CardHeader>
 
@@ -148,9 +137,17 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground/60 tracking-wide">
-          Powered by <span className="font-semibold text-castleton-green dark:text-saffron">Lifewood PH</span>
-        </p>
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <span className="text-xs text-muted-foreground/60 tracking-wide">Powered by</span>
+          <div className="relative w-32 h-10 opacity-70 hover:opacity-100 transition-opacity duration-300">
+            <Image
+              src="/lifewood-logo.png"
+              alt="Lifewood Logo"
+              fill
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
