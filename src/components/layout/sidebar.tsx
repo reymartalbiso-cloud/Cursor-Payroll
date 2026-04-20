@@ -139,8 +139,8 @@ export function Sidebar({
 
             {!collapsed && (
               <div className="flex flex-col items-center w-full pt-1">
-                <span className="text-[22px] font-black text-saffron tracking-[0.15em] uppercase leading-none">
-                  Payroll
+                <span className="text-[22px] font-black tracking-[0.15em] leading-none bg-gradient-to-r from-saffron via-yellow-300 to-saffron bg-clip-text text-transparent">
+                  LifePay
                 </span>
                 <p className="text-[9px] uppercase font-medium text-white/30 tracking-widest mt-1.5">
                   Lifewood PH
